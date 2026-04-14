@@ -16,6 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { PasswordStrengthMeter } from "@/components/strength-meter";
+import { createClient } from "@/utils/supabase/client";
 
 export default function SignUpPage() {
   const [email, setEmail] = useState("");
