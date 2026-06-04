@@ -52,7 +52,7 @@ export interface PasswordStrengthMeterProps extends React.HTMLAttributes<HTMLDiv
   theme?: StrengthMeterTheme;
 }
 
-const defaultRequirements: PasswordStrengthRequirement[] = [
+export const defaultRequirements: PasswordStrengthRequirement[] = [
   {
     label: "At least 8 characters",
     validator: (password) => password.length >= 8,

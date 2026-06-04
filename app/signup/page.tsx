@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -15,14 +15,38 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { PasswordStrengthMeter } from "@/components/strength-meter";
+import {
+  PasswordStrengthMeter,
+  defaultRequirements,
+} from "@/components/strength-meter";
 import { createClient } from "@/utils/supabase/client";
+import * as Sentry from "@sentry/nextjs";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { MailSend02Icon, UserAccountIcon } from "@hugeicons/core-free-icons";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Modal } from "@/components/modal";
 
 export default function SignUpPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [city, setCity] = useState("");
-  const [foodExceptions, setFoodExceptions] = useState<string[]>([]);
+  const [dietaryRestrictions, setDietaryRestrictions] = useState<string[]>([]);
+  const [submitDisabled, setSubmitDisabled] = useState(true);
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [showAccountExistsModal, setShowAccountExistsModal] = useState(false);
+  const router = useRouter();
+
+  const isValidEmail = (email: string) =>
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+  useEffect(() => {
+    const isPasswordValid = defaultRequirements.every((requirement) =>
+      requirement.validator(password),
+    );
+
+    setSubmitDisabled(!isPasswordValid || !isValidEmail(email) || !city);
+  }, [password, email, city]);
 
   const allergyOptions = [
     "Shellfish",
@@ -39,16 +63,65 @@ export default function SignUpPage() {
 
   const handleAllergyChange = (allergy: string, checked: boolean) => {
     if (checked) {
-      setFoodExceptions([...foodExceptions, allergy]);
+      setDietaryRestrictions([...dietaryRestrictions, allergy]);
     } else {
-      setFoodExceptions(foodExceptions.filter((item) => item !== allergy));
+      setDietaryRestrictions(
+        dietaryRestrictions.filter((item) => item !== allergy),
+      );
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Call your auth API here
-    console.log({ email, password, city, foodExceptions });
+    const supabase = createClient();
+
+    const isPasswordValid = defaultRequirements.every((requirement) =>
+      requirement.validator(password),
+    );
+
+    if (!isPasswordValid) {
+      console.error("Password does not meet requirements");
+      return;
+    }
+
+    if (!isValidEmail(email)) {
+      console.error("Invalid email format");
+      return;
+    }
+
+    if (!city) {
+      console.error("City is required");
+      return;
+    }
+
+    const { data, error } = await supabase.auth.signUp({
+      email: email,
+      password: password,
+      options: {
+        data: {
+          city: city,
+          dietary_restrictions: dietaryRestrictions,
+        },
+      },
+    });
+    if (error) {
+      console.error("Error signing up:", error.message);
+      Sentry.captureException(error, { extra: { context: "Signup Error" } });
+    } else if (data && data.user) {
+      if (data.user.identities) {
+        if (data.user.identities.length > 0) {
+          // Account already created but pending email confirmation - resend the confirmation email
+          supabase.auth.resend({ email, type: "signup" });
+          setShowEmailModal(true);
+        } else {
+          // Account already exists. Redirect user to login page
+          setShowAccountExistsModal(true);
+        }
+      }
+    } else {
+      console.log("Signup data", data);
+      setShowEmailModal(true);
+    }
   };
 
   return (
@@ -61,7 +134,7 @@ export default function SignUpPage() {
           <h1 className="text-3xl font-bold text-center mb-8 text-white dark:text-white">
             Sign Up
           </h1>
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="space-y-5">
             <div>
               <label className="block text-sm font-medium text-white dark:text-white mb-2">
                 Email
@@ -110,9 +183,9 @@ export default function SignUpPage() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" className="w-full justify-between">
-                    {foodExceptions.length === 0
-                      ? "Select exceptions..."
-                      : `${foodExceptions.length} selected`}
+                    {dietaryRestrictions.length === 0
+                      ? "Select dietary restrictions..."
+                      : `${dietaryRestrictions.length} selected`}
                     <span className="ml-2">▼</span>
                   </Button>
                 </DropdownMenuTrigger>
@@ -124,13 +197,13 @@ export default function SignUpPage() {
                       onClick={() =>
                         handleAllergyChange(
                           allergy,
-                          !foodExceptions.includes(allergy),
+                          !dietaryRestrictions.includes(allergy),
                         )
                       }
                     >
                       <Checkbox
                         id={allergy}
-                        checked={foodExceptions.includes(allergy)}
+                        checked={dietaryRestrictions.includes(allergy)}
                         onCheckedChange={(checked) =>
                           handleAllergyChange(allergy, checked as boolean)
                         }
@@ -138,6 +211,13 @@ export default function SignUpPage() {
                       <label
                         htmlFor={allergy}
                         className="text-sm cursor-pointer flex-1"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleAllergyChange(
+                            allergy,
+                            !dietaryRestrictions.includes(allergy),
+                          );
+                        }}
                       >
                         {allergy}
                       </label>
@@ -148,22 +228,64 @@ export default function SignUpPage() {
             </div>
             <Button
               type="submit"
+              onClick={handleSubmit}
+              disabled={submitDisabled}
               className="w-full mt-6 h-10 text-base bg-sky-700 hover:bg-sky-800 text-white dark:bg-sky-700 dark:hover:bg-sky-800 dark:text-white"
             >
               Create Account
             </Button>
-          </form>
+          </div>
           <p className="text-center text-slate-300 dark:text-slate-300 mt-6">
             Already have an account?{" "}
-            <a
+            <Link
               href="/login"
               className="text-white dark:text-white hover:underline font-medium"
             >
               Log in
-            </a>
+            </Link>
           </p>
         </div>
       </div>
+
+      {/* Email Verification Modal */}
+      <Modal
+        open={showEmailModal}
+        icon={
+          <HugeiconsIcon
+            icon={MailSend02Icon}
+            className="w-8 h-8 text-green-500"
+            strokeWidth={2}
+          />
+        }
+        title="Check Your Email"
+        description={`We've sent a verification link to ${email}. Please check your inbox and click the link to verify your account.`}
+        action={{
+          label: "Go to Login",
+          onClick: () => {
+            router.push("/login");
+          },
+        }}
+      />
+
+      {/* Account already exists modal */}
+      <Modal
+        open={showAccountExistsModal}
+        icon={
+          <HugeiconsIcon
+            icon={UserAccountIcon}
+            className="w-8 h-8 text-red-500"
+            strokeWidth={2}
+          />
+        }
+        title="Account Already Exists"
+        description="An account with this email address already exists. Please log in instead."
+        action={{
+          label: "Go to Login",
+          onClick: () => {
+            router.push("/login");
+          },
+        }}
+      />
     </main>
   );
 }

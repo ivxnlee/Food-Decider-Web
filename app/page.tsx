@@ -1,12 +1,39 @@
+"use client";
 import { Button } from "@/components/ui/button";
-import { createClient } from "@/utils/supabase/server";
-import { cookies } from "next/headers";
+import { toast } from "sonner";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
-export default async function Page() {
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
-  const { data: todos } = await supabase.from("todos").select();
+export default function Page() {
+  const searchParams = useSearchParams();
+  const [mounted, setMounted] = useState<boolean>(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+
+    // Check query params (PKCE flow)
+    const queryParams = new URLSearchParams(window.location.search);
+
+    // Check hash params (implicit flow / error redirects)
+    const hashParams = new URLSearchParams(
+      window.location.hash.replace("#", ""),
+    );
+
+    const errorCode =
+      queryParams.get("error_code") || hashParams.get("error_code");
+
+    if (errorCode === "otp_expired") {
+      toast.error("Link Expired", {
+        description:
+          "Your confirmation link has expired. Please sign up again.",
+      });
+    }
+  }, [mounted, searchParams]);
 
   return (
     <main className="flex justify-center">
