@@ -43,10 +43,11 @@ export default function Page() {
           Can't decide your next meal? Let fate (and flavor) choose for you 🍜✨
         </span>
         <div>
-          <Button variant="outline" className="mr-2 w-40 h-15 text-3xl">
+          <Button asChild variant="outline" className="mr-2 w-40 h-15 text-3xl">
             <Link href="/login">Log in</Link>
           </Button>
           <Button
+            asChild
             variant="outline"
             className="w-40 h-15 text-3xl !bg-red-600 hover:!bg-red-500"
           >

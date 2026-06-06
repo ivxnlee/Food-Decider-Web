@@ -4,6 +4,9 @@ import { type NextRequest, NextResponse } from "next/server";
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY;
 
+// Middleware helper used to sync Supabase auth state for incoming requests.
+// It reads cookies from the request, initializes a server-side Supabase client,
+// and then enforces route-level redirects based on the user's auth status.
 export const updateSession = async (request: NextRequest) => {
   let supabaseResponse = NextResponse.next({
     request: {
@@ -30,14 +33,14 @@ export const updateSession = async (request: NextRequest) => {
     },
   });
 
-  // Get the user
+  // Retrieve the currently authenticated user from Supabase.
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   const url = request.nextUrl;
 
-  // Protect these routes — redirect to login if not authenticated
+  // Protect these routes — unauthenticated visitors are redirected to /login.
   const protectedRoutes = ["/dashboard"];
   const isProtectedRoute = protectedRoutes.some((route) =>
     url.pathname.startsWith(route),
@@ -47,7 +50,7 @@ export const updateSession = async (request: NextRequest) => {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  // Redirect logged-in users away from auth pages
+  // Redirect authenticated users away from public auth pages.
   const authRoutes = ["/login", "/signup"];
   const isAuthRoute = authRoutes.some((route) =>
     url.pathname.startsWith(route),

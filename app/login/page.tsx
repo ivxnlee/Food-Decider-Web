@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/utils/supabase/client";
@@ -14,6 +15,7 @@ export default function LoginPage() {
   const [showResetModal, setShowResetModal] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [isResetting, setIsResetting] = useState(false);
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -34,6 +36,9 @@ export default function LoginPage() {
         console.error("Error logging in:", error, error.message);
         Sentry.captureException(error, { extra: { context: "Login Error" } });
       }
+    } else {
+      toast.success("Logged in successfully!");
+      router.push("/dashboard");
     }
   };
 

@@ -4,12 +4,16 @@ import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { PasswordStrengthMeter } from "@/components/strength-meter";
+import {
+  PasswordStrengthMeter,
+  defaultRequirements,
+} from "@/components/strength-meter";
 import { toast } from "sonner";
 
 export default function ResetPassword() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [submitDisabled, setSubmitDisabled] = useState(true);
   const [isValidSession, setIsValidSession] = useState(false);
   const [checking, setChecking] = useState(true); // ← guard
   const supabase = createClient();
@@ -30,7 +34,24 @@ export default function ResetPassword() {
     checkSession();
   }, [router, supabase]);
 
+  useEffect(() => {
+    const isPasswordValid = defaultRequirements.every((requirement) =>
+      requirement.validator(password),
+    );
+
+    setSubmitDisabled(!isPasswordValid);
+  }, [password]);
+
   const handleUpdate = async () => {
+    const isPasswordValid = defaultRequirements.every((requirement) =>
+      requirement.validator(password),
+    );
+
+    if (!isPasswordValid) {
+      console.error("Password does not meet requirements");
+      return;
+    }
+
     if (password !== confirm) {
       toast.error("Passwords do not match");
       return;
@@ -103,7 +124,12 @@ export default function ResetPassword() {
             >
               Back
             </Button>
-            <Button type="button" onClick={handleUpdate} className="w-full">
+            <Button
+              type="button"
+              disabled={submitDisabled}
+              onClick={handleUpdate}
+              className="w-full"
+            >
               Update Password
             </Button>
           </div>

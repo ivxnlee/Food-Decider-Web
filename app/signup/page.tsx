@@ -26,10 +26,12 @@ import { MailSend02Icon, UserAccountIcon } from "@hugeicons/core-free-icons";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Modal } from "@/components/modal";
+import { toast } from "sonner";
 
 export default function SignUpPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
   const [city, setCity] = useState("");
   const [dietaryRestrictions, setDietaryRestrictions] = useState<string[]>([]);
   const [submitDisabled, setSubmitDisabled] = useState(true);
@@ -81,6 +83,11 @@ export default function SignUpPage() {
 
     if (!isPasswordValid) {
       console.error("Password does not meet requirements");
+      return;
+    }
+
+    if (password !== confirm) {
+      toast.error("Passwords do not match");
       return;
     }
 
@@ -155,6 +162,18 @@ export default function SignUpPage() {
                 placeholder="Enter your password"
                 value={password}
                 onValueChange={(value) => setPassword(value)}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-white dark:text-white mb-2">
+                Confirm password
+              </label>
+              <Input
+                type="password"
+                placeholder="Confirm your password"
+                value={confirm}
+                onChange={(e) => setConfirm(e.target.value)}
+                required
               />
             </div>
             <div>
