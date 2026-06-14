@@ -41,7 +41,7 @@ export const updateSession = async (request: NextRequest) => {
   const url = request.nextUrl;
 
   // Protect these routes — unauthenticated visitors are redirected to /login.
-  const protectedRoutes = ["/dashboard"];
+  const protectedRoutes = ["/dashboard", "/initial-userflow"];
   const isProtectedRoute = protectedRoutes.some((route) =>
     url.pathname.startsWith(route),
   );

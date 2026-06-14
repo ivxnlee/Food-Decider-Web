@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Toggle } from "@/components/ui/toggle";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,6 +35,9 @@ export default function SignUpPage() {
   const [confirm, setConfirm] = useState("");
   const [city, setCity] = useState("");
   const [dietaryRestrictions, setDietaryRestrictions] = useState<string[]>([]);
+  const [halal, setHalal] = useState(false);
+  const [vegan, setVegan] = useState(false);
+  const [vegetarian, setVegetarian] = useState(false);
   const [submitDisabled, setSubmitDisabled] = useState(true);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [showAccountExistsModal, setShowAccountExistsModal] = useState(false);
@@ -108,6 +112,9 @@ export default function SignUpPage() {
         data: {
           city: city,
           dietary_restrictions: dietaryRestrictions,
+          halal: halal,
+          vegan: vegan,
+          vegetarian: vegetarian,
         },
       },
     });
@@ -185,13 +192,13 @@ export default function SignUpPage() {
                   <SelectValue placeholder="Select a city" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="singapore">Singapore</SelectItem>
-                  <SelectItem value="kualalumpur">Kuala Lumpur</SelectItem>
-                  <SelectItem value="bangkok">Bangkok</SelectItem>
-                  <SelectItem value="tokyo">Tokyo</SelectItem>
-                  <SelectItem value="seoul">Seoul</SelectItem>
-                  <SelectItem value="hongkong">Hong Kong</SelectItem>
-                  <SelectItem value="others">Others</SelectItem>
+                  <SelectItem value="Singapore">Singapore</SelectItem>
+                  <SelectItem value="Kuala Lumpur">Kuala Lumpur</SelectItem>
+                  <SelectItem value="Bangkok">Bangkok</SelectItem>
+                  <SelectItem value="Tokyo">Tokyo</SelectItem>
+                  <SelectItem value="Seoul">Seoul</SelectItem>
+                  <SelectItem value="Hong Kong">Hong Kong</SelectItem>
+                  <SelectItem value="Others">Others</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -244,6 +251,42 @@ export default function SignUpPage() {
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <label className="text-sm font-medium text-white dark:text-white w-24">
+                Halal Only?
+              </label>
+              <Toggle
+                pressed={halal}
+                onPressedChange={setHalal}
+                className="flex-1 h-10 justify-center data-[state=on]:bg-sky-700 data-[state=off]:bg-slate-700 hover:data-[state=off]:bg-slate-600 text-white"
+              >
+                {halal ? "Yes" : "No"}
+              </Toggle>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <label className="text-sm font-medium text-white dark:text-white w-24">
+                Vegan?
+              </label>
+              <Toggle
+                pressed={vegan}
+                onPressedChange={setVegan}
+                className="flex-1 h-10 justify-center data-[state=on]:bg-sky-700 data-[state=off]:bg-slate-700 hover:data-[state=off]:bg-slate-600 text-white"
+              >
+                {vegan ? "Yes" : "No"}
+              </Toggle>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <label className="text-sm font-medium text-white dark:text-white w-24">
+                Vegetarian?
+              </label>
+              <Toggle
+                pressed={vegetarian}
+                onPressedChange={setVegetarian}
+                className="flex-1 h-10 justify-center data-[state=on]:bg-sky-700 data-[state=off]:bg-slate-700 hover:data-[state=off]:bg-slate-600 text-white"
+              >
+                {vegetarian ? "Yes" : "No"}
+              </Toggle>
             </div>
             <Button
               type="submit"

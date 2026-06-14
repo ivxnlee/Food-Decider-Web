@@ -25,7 +25,7 @@ export default function DashboardPage() {
 
     console.log("PROFILE:", profile); // Remove in production
 
-    if (profile?.initial_userflow === false) {
+    if (profile?.initial_userflow === true) {
       router.push("/initial-userflow");
     }
   };
