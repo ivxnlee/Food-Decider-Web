@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // Represents a single card item in the swipe deck
 export interface SwipeCardItem {
@@ -21,6 +22,7 @@ interface SwipeDeckProps {
   renderCard?: (card: SwipeCardItem) => React.ReactNode;
   disableActions?: boolean;
   disableUndo?: boolean;
+  isInitialLoading?: boolean;
   handleSubmit: (history: HistoryEntry[]) => void;
 }
 
@@ -37,7 +39,7 @@ const ROTATION_FACTOR = 0.12;
 
 // Hook to track responsive screen size
 function useResponsiveSize() {
-  const [windowWidth, setWindowWidth] = useState(0);
+  const [windowWidth, setWindowWidth] = useState(480);
 
   useEffect(() => {
     // Set initial width
@@ -234,6 +236,7 @@ export default function SwipeDeck({
   renderCard,
   disableActions = false,
   disableUndo = false,
+  isInitialLoading,
   handleSubmit,
 }: SwipeDeckProps) {
   // Current remaining cards in the deck
@@ -325,6 +328,8 @@ export default function SwipeDeck({
           sizing.cardDescFontSize,
         );
 
+  const isLoading = isInitialLoading;
+
   return (
     <div
       style={{
@@ -350,21 +355,33 @@ export default function SwipeDeck({
           ["remaining", stack.length],
           ["disliked", disliked],
         ].map(([label, val]) => (
-          <div key={label} style={{ textAlign: "center" }}>
-            <div
-              style={{
-                fontSize: sizing.statFontSize,
-                fontWeight: 500,
-                color:
-                  label === "liked"
-                    ? "#4caf50"
-                    : label === "disliked"
-                      ? "#f44336"
-                      : "#fff",
-              }}
-            >
-              {val}
-            </div>
+          <div
+            key={label}
+            style={{
+              textAlign: "center",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+            }}
+          >
+            {isLoading ? (
+              <Skeleton className="h-8 w-10 rounded bg-slate-700" />
+            ) : (
+              <div
+                style={{
+                  fontSize: sizing.statFontSize,
+                  fontWeight: 500,
+                  color:
+                    label === "liked"
+                      ? "#4caf50"
+                      : label === "disliked"
+                        ? "#f44336"
+                        : "#fff",
+                }}
+              >
+                {val}
+              </div>
+            )}
             <div
               style={{
                 fontSize: sizing.statLabelFontSize,
@@ -379,7 +396,7 @@ export default function SwipeDeck({
       </div>
 
       {/* Card deck: renders cards in stack with depth-based positioning and layering */}
-      {stack.length > 0 ? (
+      {stack.length > 0 || isLoading ? (
         <div
           style={{
             position: "relative",
@@ -388,24 +405,51 @@ export default function SwipeDeck({
             margin: "0 auto",
           }}
         >
-          {stack.map((card, idx) => {
-            const isTop = idx === stack.length - 1;
-            // Calculate depth for visual layering (cards behind the top card)
-            const depth = stack.length - 1 - idx;
-            return (
-              <TopCardRef
-                key={card.id}
-                card={card}
-                depth={depth}
-                isTop={isTop}
-                onSwipe={handleSwipe}
-                swipeRef={isTop ? topCardSwipeRef : undefined}
-                renderCard={renderCardContent}
-                cardWidth={sizing.cardWidth}
-                cardHeight={sizing.cardHeight}
+          {isLoading ? (
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                borderRadius: 24,
+                background: "rgba(255,255,255,0.04)",
+                border: "2px solid rgba(255,255,255,0.08)",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 16,
+                padding: 24,
+                overflow: "hidden",
+              }}
+            >
+              <Skeleton
+                className="h-64 w-full rounded-[24px] bg-slate-800"
+                style={{ maxWidth: sizing.cardWidth - 32 }}
               />
-            );
-          })}
+              <Skeleton className="h-7 w-3/4 bg-slate-700" />
+              <Skeleton className="h-5 w-1/2 bg-slate-700" />
+              <Skeleton className="h-5 w-5/6 bg-slate-700" />
+            </div>
+          ) : (
+            stack.map((card, idx) => {
+              const isTop = idx === stack.length - 1;
+              // Calculate depth for visual layering (cards behind the top card)
+              const depth = stack.length - 1 - idx;
+              return (
+                <TopCardRef
+                  key={card.id}
+                  card={card}
+                  depth={depth}
+                  isTop={isTop}
+                  onSwipe={handleSwipe}
+                  swipeRef={isTop ? topCardSwipeRef : undefined}
+                  renderCard={renderCardContent}
+                  cardWidth={sizing.cardWidth}
+                  cardHeight={sizing.cardHeight}
+                />
+              );
+            })
+          )}
         </div>
       ) : (
         <div
@@ -490,31 +534,35 @@ export default function SwipeDeck({
               </div>
             </div>
           )}
-          <div style={{ fontSize: 28, textWrap: "nowrap" }}>
-            {liked > 2 ? "Complete!" : "Minimum of 3 likes required!"}
-          </div>
-          <Button
-            onClick={restart}
-            onMouseEnter={() => setHoveredButton("restart")}
-            onMouseLeave={() => setHoveredButton(null)}
-            className="w-50 h-15 text-lg font-bold"
-            style={{
-              padding: "10px 24px",
-            }}
-          >
-            Start Over
-          </Button>
-          {liked > 2 && (
-            <Button
-              variant="green"
-              className="w-50 h-15 text-lg font-bold"
-              onClick={() => handleSubmit(history)}
-              style={{
-                padding: "10px 24px",
-              }}
-            >
-              Continue
-            </Button>
+          {history.length > 0 && (
+            <>
+              <div style={{ fontSize: 28, textWrap: "nowrap" }}>
+                {liked > 2 ? "Complete!" : "Minimum of 3 likes required!"}
+              </div>
+              <Button
+                onClick={restart}
+                onMouseEnter={() => setHoveredButton("restart")}
+                onMouseLeave={() => setHoveredButton(null)}
+                className="w-50 h-15 text-lg font-bold"
+                style={{
+                  padding: "10px 24px",
+                }}
+              >
+                Start Over
+              </Button>
+              {liked > 2 && (
+                <Button
+                  variant="green"
+                  className="w-50 h-15 text-lg font-bold"
+                  onClick={() => handleSubmit(history)}
+                  style={{
+                    padding: "10px 24px",
+                  }}
+                >
+                  Continue
+                </Button>
+              )}
+            </>
           )}
         </div>
       )}
@@ -526,8 +574,8 @@ export default function SwipeDeck({
           display: "flex",
           gap: sizing.gapButtons,
           marginTop: sizing.marginTopButtons,
-          opacity: stack.length === 0 ? 0.3 : 1,
-          pointerEvents: stack.length === 0 ? "none" : "auto",
+          opacity: stack.length === 0 || isLoading ? 0.3 : 1,
+          pointerEvents: stack.length === 0 || isLoading ? "none" : "auto",
           flexWrap: sizing.isMobile ? "wrap" : "nowrap",
           justifyContent: "center",
         }}

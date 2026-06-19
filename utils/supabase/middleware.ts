@@ -41,7 +41,7 @@ export const updateSession = async (request: NextRequest) => {
   const url = request.nextUrl;
 
   // Protect these routes — unauthenticated visitors are redirected to /login.
-  const protectedRoutes = ["/dashboard", "/initial-userflow"];
+  const protectedRoutes = ["/initial-userflow"];
   const isProtectedRoute = protectedRoutes.some((route) =>
     url.pathname.startsWith(route),
   );
@@ -57,7 +57,7 @@ export const updateSession = async (request: NextRequest) => {
   );
 
   if (user && isAuthRoute) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    return NextResponse.redirect(new URL("/", request.url));
   }
 
   return supabaseResponse;

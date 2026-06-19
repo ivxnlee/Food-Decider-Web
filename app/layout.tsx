@@ -5,6 +5,7 @@ import { Toaster } from "sonner";
 import "./globals.css";
 import "./custom-styles.css";
 import { cn } from "@/lib/utils";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 const montserratHeading = Montserrat({
   subsets: ["latin"],
@@ -49,8 +50,10 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <ThemeProvider>
-          {children}
-          <Toaster richColors />
+          <TooltipProvider>
+            {children}
+            <Toaster richColors />
+          </TooltipProvider>
         </ThemeProvider>
       </body>
     </html>

@@ -1,10 +1,17 @@
 import { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface ModalAction {
   label: string;
   onClick: () => void;
   className?: string;
+  disabled?: boolean;
+  tooltipText?: string;
 }
 
 interface ModalProps {
@@ -61,28 +68,41 @@ export function Modal({
 
           {/* Description */}
           <div className="text-slate-300 mb-6">{description}</div>
+          <div className="w-full flex flex-col gap-2">
+            {/* Primary action */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-block w-full">
+                  <Button
+                    onClick={action.onClick}
+                    className={action.className ?? "w-full"}
+                    disabled={action.disabled}
+                  >
+                    {action.label}
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              {action.disabled && (
+                <TooltipContent className="bg-red-800 text-white">
+                  <p className="text-sm text-slate-200">{action.tooltipText}</p>
+                </TooltipContent>
+              )}
+            </Tooltip>
 
-          {/* Primary action */}
-          <Button
-            onClick={action.onClick}
-            className={action.className ?? "w-full"}
-          >
-            {action.label}
-          </Button>
-
-          {/* Optional secondary action */}
-          {secondaryAction && (
-            <Button
-              variant="ghost"
-              onClick={secondaryAction.onClick}
-              className={
-                secondaryAction.className ??
-                "w-full mt-2 text-slate-400 hover:text-white"
-              }
-            >
-              {secondaryAction.label}
-            </Button>
-          )}
+            {/* Optional secondary action */}
+            {secondaryAction && (
+              <Button
+                variant="secondary"
+                onClick={secondaryAction.onClick}
+                className={
+                  secondaryAction.className ??
+                  "w-full mt-2 text-slate-400 hover:text-white"
+                }
+              >
+                {secondaryAction.label}
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     </div>

@@ -20,5 +20,5 @@ export async function GET(request: Request) {
 
   // Redirect the user to the dashboard regardless of whether the exchange
   // succeeded or not. Error handling can be added if needed.
-  return NextResponse.redirect(`${origin}/dashboard`);
+  return NextResponse.redirect(`${origin}/`);
 }

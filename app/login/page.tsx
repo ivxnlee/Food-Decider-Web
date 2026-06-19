@@ -38,7 +38,7 @@ export default function LoginPage() {
       }
     } else {
       toast.success("Logged in successfully!");
-      router.push("/dashboard");
+      router.push("/");
     }
   };
 
