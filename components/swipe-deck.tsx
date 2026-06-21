@@ -182,6 +182,7 @@ function defaultCardContent(
           color: "#ffffff",
           textAlign: "center",
           lineHeight: 1.2,
+          userSelect: "none",
         }}
       >
         {card.name}
@@ -205,6 +206,7 @@ function defaultCardContent(
                 color: "#e0e0e0",
                 borderRadius: 999,
                 fontWeight: 500,
+                userSelect: "none",
               }}
             >
               {c}
@@ -220,6 +222,7 @@ function defaultCardContent(
           lineHeight: 1.4,
           overflow: "hidden",
           display: "-webkit-box",
+          userSelect: "none",
         }}
       >
         {card.desc}

@@ -5,7 +5,7 @@ import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/utils/supabase/client";
 import Link from "next/link";
-import FoodSpinner from "@/components/food-spinner";
+import FoodSpinner, { FoodItem } from "@/components/food-spinner";
 import { toast } from "sonner";
 import { useSearchParams } from "next/navigation";
 
@@ -14,10 +14,10 @@ export default function DashboardPage() {
   const router = useRouter();
   const supabase = createClient();
   const [initStatus, setInitStatus] = useState<
-    "loading" | "logged in" | "not logged in"
+    "loading" | "logged in" | "logged out"
   >("loading");
   const [isLoggingOut, setIsLoggingOut] = useState<boolean>(false);
-
+  const [mappedFoods, setMappedFoods] = useState<FoodItem[]>([]);
   const [mounted, setMounted] = useState<boolean>(false);
 
   useEffect(() => {
@@ -53,7 +53,7 @@ export default function DashboardPage() {
     } = await supabase.auth.getSession();
 
     if (!session?.user) {
-      setInitStatus("not logged in");
+      setInitStatus("logged out");
       return;
     }
 
@@ -69,6 +69,22 @@ export default function DashboardPage() {
 
     if (profile?.initial_userflow === true) {
       router.push("/initial-userflow");
+    } else if (profile?.favourite_foods && profile.favourite_foods.length > 0) {
+      const { data: foods } = await supabase
+        .from("foods")
+        .select("id, name, cuisine, desc, image_url")
+        .in("id", profile?.favourite_foods);
+
+      if (foods && foods.length > 0) {
+        const mappedFoods = foods.map((food) => ({
+          name: food.name,
+          desc: food.desc,
+          cuisine: food.cuisine,
+          image_url: food.image_url,
+          chance: 0.1,
+        }));
+        setMappedFoods(mappedFoods);
+      }
     }
   };
 
@@ -105,7 +121,7 @@ export default function DashboardPage() {
               🍜✨
             </p>
           </div>
-          {initStatus === "not logged in" && (
+          {initStatus === "logged out" && (
             <div>
               <Button
                 asChild
@@ -137,7 +153,7 @@ export default function DashboardPage() {
         </header>
 
         <section className="grid gap-4">
-          {initStatus === "not logged in" && (
+          {initStatus === "logged out" && (
             <div className="p-6 rounded-3xl border border-amber-600 bg-amber-800 shadow-inner shadow-slate-950/40">
               <h2 className="text-xl font-medium text-slate-50">DEMO MODE</h2>
               <p className="mt-2 text-sm leading-6 text-slate-50">
@@ -148,7 +164,7 @@ export default function DashboardPage() {
             </div>
           )}
 
-          <FoodSpinner loggedIn={initStatus} />
+          <FoodSpinner loggedIn={initStatus} items={mappedFoods} />
         </section>
       </div>
     </main>

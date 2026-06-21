@@ -105,6 +105,7 @@ function FoodImage({ item, size }: FoodImageProps) {
     <img
       src={item.image_url}
       alt={item.name}
+      draggable={false}
       style={{
         width: size,
         height: size,
@@ -142,7 +143,7 @@ interface FoodSpinnerProps {
 
 export default function FoodSpinner({
   loggedIn,
-  items = FOODS,
+  items = dummyFoods,
   dummyItems = dummyFoods,
   onResult,
 }: FoodSpinnerProps) {
@@ -151,10 +152,19 @@ export default function FoodSpinner({
   );
 
   useEffect(() => {
-    setReelItems(
-      Array.from({ length: TOTAL_ITEMS }, () => randomFiller(items)),
-    );
-  }, [items]);
+    let newItems = dummyItems;
+    if (loggedIn === "logged out") {
+      newItems = FOODS;
+    } else if (loggedIn === "logged in" && items && items.length > 0) {
+      newItems = items;
+    }
+
+    if (newItems && newItems.length > 0 && newItems !== dummyItems) {
+      setReelItems(
+        Array.from({ length: TOTAL_ITEMS }, () => randomFiller(newItems)),
+      );
+    }
+  }, [items, loggedIn]);
 
   const [translateX, setTranslateX] = useState(0);
   const [transition, setTransition] = useState("none");
@@ -166,9 +176,16 @@ export default function FoodSpinner({
     setSpinning(true);
     setResult(null);
 
-    const winningItem = pickItem(items);
+    let tempItems = dummyItems;
+    if (loggedIn === "logged out") {
+      tempItems = FOODS;
+    } else if (loggedIn === "logged in" && items && items.length > 0) {
+      tempItems = items;
+    }
+
+    const winningItem = pickItem(tempItems);
     const newItems: FoodItem[] = Array.from({ length: TOTAL_ITEMS }, (_, i) =>
-      i === WINNING_INDEX ? winningItem : randomFiller(items),
+      i === WINNING_INDEX ? winningItem : randomFiller(tempItems),
     );
 
     setTransition("none");
@@ -290,6 +307,7 @@ export default function FoodSpinner({
                   padding: "0 8px",
                   lineHeight: 1.3,
                   color: "#e8e8ea",
+                  userSelect: "none",
                 }}
               >
                 {item.name}
