@@ -210,7 +210,7 @@ export default function InitialUserflowPage() {
                       Processing...
                     </>
                   ) : (
-                    <>Continue</>
+                    "Continue"
                   )}
                 </Button>
               </div>

@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import * as Sentry from "@sentry/nextjs";
 import Link from "next/link";
 import { Modal } from "@/components/modal";
+import { Spinner } from "@/components/ui/spinner";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -15,10 +16,12 @@ export default function LoginPage() {
   const [showResetModal, setShowResetModal] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [isResetting, setIsResetting] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setIsLoading(true);
     const supabase = createClient();
 
     const { error } = await supabase.auth.signInWithPassword({
@@ -36,6 +39,7 @@ export default function LoginPage() {
         console.error("Error logging in:", error, error.message);
         Sentry.captureException(error, { extra: { context: "Login Error" } });
       }
+      setIsLoading(false);
     } else {
       toast.success("Logged in successfully!");
       router.push("/");
@@ -105,8 +109,15 @@ export default function LoginPage() {
                 required
               />
             </div>
-            <Button type="submit" className="w-full">
-              Log In
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Spinner data-icon="inline-start" />
+                  Logging In...
+                </>
+              ) : (
+                "Log In"
+              )}
             </Button>
           </form>
           <div className="mt-4 text-center">
