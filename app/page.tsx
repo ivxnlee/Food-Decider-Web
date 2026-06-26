@@ -7,7 +7,6 @@ import { createClient } from "@/utils/supabase/client";
 import Link from "next/link";
 import FoodSpinner, { FoodItem } from "@/components/food-spinner";
 import { toast } from "sonner";
-import { useSearchParams } from "next/navigation";
 
 interface FoodData {
   id: number;
@@ -20,7 +19,6 @@ interface FoodData {
 }
 
 export default function DashboardPage() {
-  const searchParams = useSearchParams();
   const router = useRouter();
   const supabase = createClient();
   const [initStatus, setInitStatus] = useState<
@@ -50,10 +48,7 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!mounted) return;
 
-    // Check query params (PKCE flow)
     const queryParams = new URLSearchParams(window.location.search);
-
-    // Check hash params (implicit flow / error redirects)
     const hashParams = new URLSearchParams(
       window.location.hash.replace("#", ""),
     );
@@ -64,10 +59,10 @@ export default function DashboardPage() {
     if (errorCode === "otp_expired") {
       toast.error("Link Expired", {
         description:
-          "Your confirmation link has expired. Please sign up again.",
+          "Your link has expired. Please sign up or reset password again.",
       });
     }
-  }, [mounted, searchParams]);
+  }, [mounted]);
 
   const fetchProfile = async () => {
     const {
