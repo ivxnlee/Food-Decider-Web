@@ -1,36 +1,116 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🍜 Food Decider
+
+A food discovery and decision-making app that helps you decide on your next meal. Browse food options, filter by dietary preferences, and lock in on your meal.[Click here for published site](https://food.ivanl.dev/)
+
+---
+
+## Tech Stack
+
+- **Framework**: [Next.js](https://nextjs.org/) (App Router)
+- **Language**: TypeScript
+- **Styling**: [Tailwind CSS](https://tailwindcss.com/) + [shadcn/ui](https://ui.shadcn.com/)
+- **Backend & Auth**: [Supabase](https://supabase.com/) (Postgres, Auth, RLS, Storage)
+
+---
+
+## Features
+
+- 🔍 **Food Discovery** — Browse and explore food options tailored to your city
+- 🔒 **Food Lock-in** — Claim a food item with a countdown timer; multiple users can lock independently
+- 🥗 **Dietary Filters** — Filter by halal, vegan, and vegetarian preferences
+- ❤️ **Favourites** — Save your favourite foods for quick access
+- 👤 **User Profiles** — Personalised preferences including city and dietary settings
+- 🔐 **Auth** — Supabase-powered authentication with row-level security
+
+---
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 18+
+- A [Supabase](https://supabase.com/) project
+
+### Installation
+
+```bash
+git clone https://github.com/ivxnlee/Food-Decider-Web.git
+cd food-decider
+npm install
+```
+
+### Environment Variables
+
+Create a `.env.local` file in the root of the project:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY=your_supabase_anon_key
+SENTRY_AUTH_TOKEN=your_sentry_auth_token
+```
+
+### Run the Dev Server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Project Structure
 
-## Learn More
+```
+food-decider/
+├── app/                  # Next.js App Router pages and layouts
+├── components/           # Reusable React components
+│   ├── ui/               # shadcn/ui primitives
+│   └── ...               # Feature components
+├── lib/
+│   ├── supabase/         # Supabase client setup
+│   └── utils.ts          # Shared utilities
+└── public/               # Static assets
+```
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Database
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+The app uses Supabase (Postgres) with the following key tables:
 
-## Deploy on Vercel
+| Table              | Purpose                                                   |
+| ------------------ | --------------------------------------------------------- |
+| `account_settings` | User preferences (city, dietary, favourites)              |
+| `foods`            | Food items available for discovery                        |
+| `food_locks`       | Active lock-in records with server-side expiry timestamps |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Lock expiry timestamps are computed server-side via a Postgres function to avoid client timezone inconsistencies.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Running Migrations
+
+Apply migrations via the Supabase CLI:
+
+```bash
+supabase db push
+```
+
+---
+
+## Architecture Notes
+
+- **Auth**: Uses `getSession()` for client-side UI guards; RLS policies enforce actual data security on the server.
+- **Food Locks**: Non-exclusive — multiple users can independently lock the same food item. Locks store an absolute `expires_at` timestamp rather than a client-managed countdown.
+- **Data Fetching**: Combines available and locked foods in a single RPC round trip, split client-side, to minimise latency.
+
+---
+
+## Contributing
+
+Pull requests are welcome. For larger changes, open an issue first to discuss what you'd like to change.
+
+---
+
+## License
+
+[MIT](LICENSE)

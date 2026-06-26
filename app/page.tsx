@@ -169,7 +169,7 @@ export default function DashboardPage() {
       console.error("Logout failed", error);
     }
 
-    router.push("/");
+    window.location.reload();
   };
 
   return (
@@ -181,7 +181,7 @@ export default function DashboardPage() {
         <header className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between mb-6">
           <div>
             <h1 className="text-5xl font-semibold text-slate-50">
-              Food Decider
+              Food Decider (Beta)
             </h1>
             <p className="mt-1 text-xl text-slate-400">
               Can't decide your next meal? Let fate (and flavor) choose for you
@@ -193,14 +193,14 @@ export default function DashboardPage() {
               <Button
                 asChild
                 variant="green"
-                className="mr-2 w-40 h-15 text-3xl"
+                className="mr-2 w-35 h-15 text-3xl"
               >
                 <Link href="/login">Log in</Link>
               </Button>
               <Button
                 asChild
                 variant="destructive"
-                className="w-40 h-15 text-3xl"
+                className="w-35 h-15 text-3xl"
               >
                 <Link href="/signup">Sign up</Link>
               </Button>
