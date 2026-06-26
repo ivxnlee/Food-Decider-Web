@@ -5,6 +5,7 @@ import { Modal } from "@/components/modal";
 
 // chance is kept for future weighting; all equal for now
 export interface FoodItem {
+  id: number;
   name: string;
   desc: string;
   cuisine: string[];
@@ -14,6 +15,7 @@ export interface FoodItem {
 
 const dummyFoods: FoodItem[] = [
   {
+    id: 0,
     name: "Loading...",
     desc: "Loading...",
     cuisine: ["Loading..."],
@@ -24,6 +26,7 @@ const dummyFoods: FoodItem[] = [
 
 const FOODS: FoodItem[] = [
   {
+    id: 8,
     name: "Pizza",
     desc: "Pizza is a beloved, globally popular dish consisting of a flattened disk of bread dough topped with savory ingredients. It typically features a rich, tomato-based sauce and melted cheese (like mozzarella) baked quickly in a hot oven, customized with various meats, vegetables, and herbs.",
     cuisine: ["Italian"],
@@ -31,6 +34,7 @@ const FOODS: FoodItem[] = [
     chance: 0.1,
   },
   {
+    id: 5,
     name: "Sushi",
     desc: "Sushi is a traditional Japanese dish centered around vinegared medium-grain rice. It is paired with a variety of ingredients, such as raw or cooked seafood, vegetables, and egg, and is often wrapped in dried seaweed.",
     cuisine: ["Japanese"],
@@ -38,6 +42,7 @@ const FOODS: FoodItem[] = [
     chance: 0.1,
   },
   {
+    id: 9,
     name: "Hotpot",
     desc: "Hot pot is an interactive, communal dining experience where diners sit around a simmering pot of flavored broth and cook their own raw ingredients at the table.",
     cuisine: ["Chinese"],
@@ -45,6 +50,7 @@ const FOODS: FoodItem[] = [
     chance: 0.1,
   },
   {
+    id: 4,
     name: "Pasta",
     desc: "Pasta dishes are typically categorized by their defining sauce and regional origins. They are often paired with specific shapes—such as long ribbons or hollow tubes—to best complement the sauce's texture.",
     cuisine: ["Italian"],
@@ -52,6 +58,7 @@ const FOODS: FoodItem[] = [
     chance: 0.1,
   },
   {
+    id: 17,
     name: "Burger",
     desc: "A burger is a sandwich featuring a savory ground meat patty—most commonly beef—pan-fried or grilled, and nestled inside a sliced bun. It is typically layered with melted cheese, fresh vegetables, and condiments like lettuce, tomatoes, onions, bacon, pickles, mayonnaise, and mustard.",
     cuisine: ["American"],
@@ -59,6 +66,7 @@ const FOODS: FoodItem[] = [
     chance: 0.1,
   },
   {
+    id: 7,
     name: "Ramen",
     desc: "Ramen is a beloved Japanese noodle soup consisting of wheat noodles served in a savory, umami-rich broth, paired with various meats and vegetables.",
     cuisine: ["Japanese"],
@@ -66,6 +74,7 @@ const FOODS: FoodItem[] = [
     chance: 0.1,
   },
   {
+    id: 15,
     name: "Steak",
     desc: "high-quality beef taken from the hindquarters of the animal, typically cut into thick slices that are cooked by grilling or frying.",
     cuisine: ["American"],
@@ -136,6 +145,11 @@ function FoodImage({ item, size }: FoodImageProps) {
 
 interface FoodSpinnerProps {
   loggedIn: string;
+  lockIn: (
+    foodID: number,
+    onSuccess?: (() => void) | undefined,
+  ) => Promise<void>;
+  lockLoading: boolean;
   items?: FoodItem[];
   dummyItems?: FoodItem[];
   onResult?: (item: FoodItem) => void;
@@ -143,6 +157,8 @@ interface FoodSpinnerProps {
 
 export default function FoodSpinner({
   loggedIn,
+  lockIn,
+  lockLoading,
   items = dummyFoods,
   dummyItems = dummyFoods,
   onResult,
@@ -358,10 +374,10 @@ export default function FoodSpinner({
           )
         }
         action={{
-          label: "Lock In",
-          onClick: () => setResult(null),
+          label: lockLoading ? "Processing..." : "Lock In",
+          onClick: () => result && lockIn(result.id, () => setResult(null)),
           className: "w-full",
-          disabled: loggedIn !== "logged in",
+          disabled: loggedIn !== "logged in" || lockLoading,
           tooltipText:
             "Login to save your choice and get personalized recommendations!",
         }}
@@ -369,6 +385,7 @@ export default function FoodSpinner({
           label: "Close",
           onClick: () => setResult(null),
           className: "w-full",
+          disabled: lockLoading,
         }}
       />
     </div>

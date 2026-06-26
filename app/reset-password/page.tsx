@@ -11,11 +11,12 @@ import {
 import { toast } from "sonner";
 
 export default function ResetPassword() {
-  const [password, setPassword] = useState("");
-  const [confirm, setConfirm] = useState("");
-  const [submitDisabled, setSubmitDisabled] = useState(true);
-  const [isValidSession, setIsValidSession] = useState(false);
-  const [checking, setChecking] = useState(true); // ← guard
+  const [password, setPassword] = useState<string>("");
+  const [confirm, setConfirm] = useState<string>("");
+  const [submitDisabled, setSubmitDisabled] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isValidSession, setIsValidSession] = useState<boolean>(false);
+  const [checking, setChecking] = useState<boolean>(true); // ← guard
   const supabase = createClient();
   const router = useRouter();
 
@@ -57,9 +58,12 @@ export default function ResetPassword() {
       return;
     }
 
+    setIsLoading(true);
+
     const { error } = await supabase.auth.updateUser({ password });
     if (error) {
       toast.error(error.message);
+      setIsLoading(false);
     } else {
       toast.success("Password updated!");
       router.push("/login");
@@ -126,7 +130,7 @@ export default function ResetPassword() {
             </Button>
             <Button
               type="button"
-              disabled={submitDisabled}
+              disabled={submitDisabled || isLoading}
               onClick={handleUpdate}
               className="w-full"
             >

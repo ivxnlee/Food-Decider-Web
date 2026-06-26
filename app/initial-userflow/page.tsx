@@ -59,7 +59,6 @@ export default function InitialUserflowPage() {
 
     const { data: foods } = await query;
 
-    console.log("Foods:", foods); // Remove in production
     if (foods && foods.length > 0) {
       setCards(
         foods.map((food) => ({

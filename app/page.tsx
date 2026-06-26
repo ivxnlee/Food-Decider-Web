@@ -9,6 +9,16 @@ import FoodSpinner, { FoodItem } from "@/components/food-spinner";
 import { toast } from "sonner";
 import { useSearchParams } from "next/navigation";
 
+interface FoodData {
+  id: number;
+  name: string;
+  desc: string;
+  cuisine: string[];
+  image_url: string;
+  is_locked: boolean;
+  expires_at: string | null;
+}
+
 export default function DashboardPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -19,9 +29,21 @@ export default function DashboardPage() {
   const [isLoggingOut, setIsLoggingOut] = useState<boolean>(false);
   const [mappedFoods, setMappedFoods] = useState<FoodItem[]>([]);
   const [mounted, setMounted] = useState<boolean>(false);
+  const [suggestAgainDays, setSuggestAgainDays] = useState<number>(4);
+  const [favouriteFoods, setFavouriteFoods] = useState<number[] | null>(null);
+  const [lockedFoods, setLockedFoods] = useState<FoodData[] | null>(null);
+  const [isTouch, setIsTouch] = useState<boolean>(false);
+  const [currentEntryID, setCurrentEntryID] = useState<number>(0);
+  const [lockLoading, setLockLoading] = useState<boolean>(false);
 
   useEffect(() => {
     setMounted(true);
+
+    const touch =
+      window.matchMedia("(pointer: coarse)").matches ||
+      "ontouchstart" in window ||
+      navigator.maxTouchPoints > 0;
+    setIsTouch(touch);
   }, []);
 
   // Handle OTP expiration error from query params or hash params
@@ -62,7 +84,7 @@ export default function DashboardPage() {
     const { data: profile } = await supabase
       .from("account_settings")
       .select(
-        "theme, city, favourite_foods, dietary_restrictions, initial_userflow",
+        "theme, city, favourite_foods, dietary_restrictions, initial_userflow, suggest_again_days",
       )
       .eq("id", session.user.id)
       .single();
@@ -70,13 +92,27 @@ export default function DashboardPage() {
     if (profile?.initial_userflow === true) {
       router.push("/initial-userflow");
     } else if (profile?.favourite_foods && profile.favourite_foods.length > 0) {
-      const { data: foods } = await supabase
-        .from("foods")
-        .select("id, name, cuisine, desc, image_url")
-        .in("id", profile?.favourite_foods);
+      setSuggestAgainDays(profile.suggest_again_days);
+      setFavouriteFoods(profile.favourite_foods);
+      getAvailableFavouriteFoods(profile.favourite_foods);
+    }
+  };
 
-      if (foods && foods.length > 0) {
-        const mappedFoods = foods.map((food) => ({
+  const getAvailableFavouriteFoods = async (favourite_foods: number[]) => {
+    const { data } = await supabase.rpc("get_available_favourite_foods", {
+      p_food_ids: favourite_foods,
+    });
+
+    const foods = data as FoodData[] | null;
+
+    if (foods && foods.length > 0) {
+      const availableFoods = foods.filter((f) => !f.is_locked);
+      const lockedFoods = foods.filter((f) => f.is_locked);
+      setLockedFoods(lockedFoods);
+
+      if (availableFoods && availableFoods.length > 0) {
+        const mappedFoods = availableFoods.map((food: FoodData) => ({
+          id: food.id,
           name: food.name,
           desc: food.desc,
           cuisine: food.cuisine,
@@ -86,6 +122,37 @@ export default function DashboardPage() {
         setMappedFoods(mappedFoods);
       }
     }
+  };
+
+  const lockIn = async (foodID: number, onSuccess?: () => void) => {
+    setLockLoading(true);
+    const { error } = await supabase.rpc("lock_food", {
+      p_food_id: foodID,
+      p_days: suggestAgainDays,
+    });
+
+    if (error) {
+      console.error("Error updating profile:", error);
+      return;
+    }
+    favouriteFoods && getAvailableFavouriteFoods(favouriteFoods);
+    toast.success("Food Locked Successfully");
+    setLockLoading(false);
+    onSuccess?.();
+  };
+
+  const removeFromLock = async (foodID: number) => {
+    const { error } = await supabase
+      .from("food_locks")
+      .delete()
+      .eq("food_id", foodID);
+
+    if (error) {
+      console.error("Error removing lock:", error);
+      return;
+    }
+    toast.success("Locked Food Removed");
+    favouriteFoods && getAvailableFavouriteFoods(favouriteFoods);
   };
 
   useEffect(() => {
@@ -164,7 +231,78 @@ export default function DashboardPage() {
             </div>
           )}
 
-          <FoodSpinner loggedIn={initStatus} items={mappedFoods} />
+          <FoodSpinner
+            loggedIn={initStatus}
+            items={mappedFoods}
+            lockIn={lockIn}
+            lockLoading={lockLoading}
+          />
+
+          {lockedFoods && lockedFoods.length > 0 && (
+            <div className="w-full overflow-auto rounded-2xl border border-emerald-500/30 bg-emerald-500/10">
+              <div className="sticky top-0 z-10 flex h-11 items-center justify-center border-b border-emerald-500/20 bg-emerald-500/10 text-sm font-semibold text-emerald-400">
+                Locked Foods ({lockedFoods.length})
+              </div>
+              <div className="flex flex-row gap-3 p-4">
+                {lockedFoods.map((entry) => (
+                  <div
+                    key={entry.id}
+                    className="group relative flex w-49 items-center gap-3 rounded-xl border border-white/10 bg-white/10 p-3 transition hover:cursor-pointer"
+                    onClick={() => isTouch && setCurrentEntryID(entry.id)}
+                  >
+                    {entry.image_url && (
+                      <img
+                        src={entry.image_url}
+                        alt={entry.name}
+                        className="h-14 w-14 shrink-0 rounded-lg object-cover"
+                      />
+                    )}
+
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate font-semibold text-slate-100">
+                        {entry.name}
+                      </div>
+                      {entry.cuisine && entry.cuisine.length > 0 && (
+                        <div className="mt-1 truncate text-sm text-slate-400">
+                          {entry.cuisine.join(", ")}
+                        </div>
+                      )}
+                    </div>
+
+                    {isTouch && entry.id === currentEntryID && (
+                      <div
+                        className="absolute inset-0 flex items-center justify-center rounded-xl bg-black/70 text-sm font-medium text-white opacity-100 transition-opacity duration-200"
+                        onClick={() => removeFromLock(entry.id)}
+                      >
+                        Tap Again to Remove
+                      </div>
+                    )}
+
+                    {!isTouch && (
+                      <div
+                        className="absolute inset-0 flex items-center justify-center rounded-xl bg-black/70 text-sm font-medium text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+                        onClick={() => removeFromLock(entry.id)}
+                      >
+                        Click to Remove
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          <p className="mt-0 text-base text-slate-300">
+            psst —{" "}
+            <a
+              href="https://ivanl.dev"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: "inherit", textDecoration: "underline" }}
+            >
+              my portfolio
+            </a>{" "}
+            is pretty cool too 👀
+          </p>
         </section>
       </div>
     </main>

@@ -28,19 +28,22 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Modal } from "@/components/modal";
 import { toast } from "sonner";
+import { Spinner } from "@/components/ui/spinner";
 
 export default function SignUpPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirm, setConfirm] = useState("");
-  const [city, setCity] = useState("");
+  const [email, setEmail] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
+  const [confirm, setConfirm] = useState<string>("");
+  const [city, setCity] = useState<string>("");
   const [dietaryRestrictions, setDietaryRestrictions] = useState<string[]>([]);
-  const [halal, setHalal] = useState(false);
-  const [vegan, setVegan] = useState(false);
-  const [vegetarian, setVegetarian] = useState(false);
-  const [submitDisabled, setSubmitDisabled] = useState(true);
-  const [showEmailModal, setShowEmailModal] = useState(false);
-  const [showAccountExistsModal, setShowAccountExistsModal] = useState(false);
+  const [halal, setHalal] = useState<boolean>(false);
+  const [vegan, setVegan] = useState<boolean>(false);
+  const [vegetarian, setVegetarian] = useState<boolean>(false);
+  const [submitDisabled, setSubmitDisabled] = useState<boolean>(true);
+  const [showEmailModal, setShowEmailModal] = useState<boolean>(false);
+  const [showAccountExistsModal, setShowAccountExistsModal] =
+    useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const router = useRouter();
 
   const isValidEmail = (email: string) =>
@@ -105,6 +108,7 @@ export default function SignUpPage() {
       return;
     }
 
+    setIsLoading(true);
     const { data, error } = await supabase.auth.signUp({
       email: email,
       password: password,
@@ -133,9 +137,9 @@ export default function SignUpPage() {
         }
       }
     } else {
-      console.log("Signup data", data);
       setShowEmailModal(true);
     }
+    setIsLoading(false);
   };
 
   return (
@@ -291,10 +295,17 @@ export default function SignUpPage() {
             <Button
               type="submit"
               onClick={handleSubmit}
-              disabled={submitDisabled}
+              disabled={submitDisabled || isLoading}
               className="w-full mt-6 h-10 text-base bg-sky-700 hover:bg-sky-800 text-white dark:bg-sky-700 dark:hover:bg-sky-800 dark:text-white"
             >
-              Create Account
+              {isLoading ? (
+                <>
+                  <Spinner data-icon="inline-start" />
+                  Creating Account...
+                </>
+              ) : (
+                "Create Account"
+              )}
             </Button>
           </div>
           <p className="text-center text-slate-300 dark:text-slate-300 mt-6">
