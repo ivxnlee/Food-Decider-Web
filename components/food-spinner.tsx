@@ -150,6 +150,7 @@ interface FoodSpinnerProps {
     onSuccess?: (() => void) | undefined,
   ) => Promise<void>;
   lockLoading: boolean;
+  isTouch: boolean;
   items?: FoodItem[];
   dummyItems?: FoodItem[];
   onResult?: (item: FoodItem) => void;
@@ -159,6 +160,7 @@ export default function FoodSpinner({
   loggedIn,
   lockIn,
   lockLoading,
+  isTouch,
   items = dummyFoods,
   dummyItems = dummyFoods,
   onResult,
@@ -378,6 +380,8 @@ export default function FoodSpinner({
           onClick: () => result && lockIn(result.id, () => setResult(null)),
           className: "w-full",
           disabled: loggedIn !== "logged in" || lockLoading,
+          isTouch: isTouch,
+          lockLoading: lockLoading,
           tooltipText:
             "Login to save your choice and get personalized recommendations!",
         }}

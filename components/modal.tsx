@@ -9,9 +9,11 @@ import {
 interface ModalAction {
   label: string;
   onClick: () => void;
+  isTouch?: boolean;
   className?: string;
   disabled?: boolean;
   tooltipText?: string;
+  lockLoading?: boolean;
 }
 
 interface ModalProps {
@@ -70,7 +72,13 @@ export function Modal({
           <div className="text-slate-300 mb-6">{description}</div>
           <div className="w-full flex flex-col gap-2">
             {/* Primary action */}
-            <Tooltip>
+            <Tooltip
+              open={
+                action.isTouch && action.disabled && !action.lockLoading
+                  ? true
+                  : undefined
+              }
+            >
               <TooltipTrigger asChild>
                 <span className="inline-block w-full">
                   <Button
