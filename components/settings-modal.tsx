@@ -38,6 +38,7 @@ interface SettingsModalProps {
   initialHalal?: boolean;
   initialVegan?: boolean;
   initialVegetarian?: boolean;
+  initialSuggestAgainDays?: number;
 }
 
 export function SettingsModal({
@@ -52,9 +53,10 @@ export function SettingsModal({
   initialHalal = false,
   initialVegan = false,
   initialVegetarian = false,
+  initialSuggestAgainDays = 4,
 }: SettingsModalProps) {
   const [tempSuggestAgainAfterDays, setTempSuggestAgainAfterDays] =
-    useState<number>(4);
+    useState<number>(initialSuggestAgainDays);
   const [cooldown, setCooldown] = useState<number>(0);
   const [section, setSection] = useState<string>("main");
   const [deleteConfirmed, setDeleteConfirmed] = useState<boolean>(false);
@@ -74,6 +76,7 @@ export function SettingsModal({
     setHalal(initialHalal);
     setVegan(initialVegan);
     setVegetarian(initialVegetarian);
+    setTempSuggestAgainAfterDays(initialSuggestAgainDays);
   }, [
     open,
     initialCity,
@@ -81,6 +84,7 @@ export function SettingsModal({
     initialHalal,
     initialVegan,
     initialVegetarian,
+    initialSuggestAgainDays,
   ]);
 
   const allergyOptions = [
@@ -139,6 +143,11 @@ export function SettingsModal({
     onDeleteAccount?.();
   };
 
+  const handleClose = () => {
+    setSection("main");
+    onClose();
+  };
+
   if (!open) return null;
 
   return (
@@ -146,14 +155,18 @@ export function SettingsModal({
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={() => {
-          setSection("main");
-          onClose();
-        }}
+        onClick={handleClose}
       />
 
       {/* Panel */}
       <div className="relative bg-black rounded-lg shadow-xl p-8 max-w-md w-full mx-4 border border-white/10">
+        <button
+          type="button"
+          onClick={handleClose}
+          className="absolute right-4 top-4 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-base font-medium text-slate-200 transition hover:bg-white/20"
+        >
+          Close
+        </button>
         <div className="flex flex-col items-center text-center">
           {/* Icon */}
           <HugeiconsIcon

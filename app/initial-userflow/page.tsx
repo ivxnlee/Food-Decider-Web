@@ -20,6 +20,7 @@ export default function InitialUserflowPage() {
   const [suggestAgainAfterDays, setSuggestAgainAfterDays] = useState<number>(4);
   const [initialLoading, setInitialLoading] = useState<boolean>(true);
   const [submitLoading, setSubmitLoading] = useState<boolean>(false);
+  const [initialUserflow, setInitialUserflow] = useState<boolean>(true);
 
   const fetchProfile = async () => {
     setInitialLoading(true);
@@ -36,11 +37,7 @@ export default function InitialUserflowPage() {
       .eq("id", user!.id)
       .single();
 
-    // Redirect to home if the user has already completed the initial user flow
-    if (profile?.initial_userflow === false) {
-      router.push("/");
-      return;
-    }
+    setInitialUserflow(profile?.initial_userflow ?? true);
 
     let query = supabase
       .from("foods")
@@ -55,6 +52,16 @@ export default function InitialUserflowPage() {
     }
     if (profile?.vegetarian) {
       query = query.eq("vegetarian", true);
+    }
+
+    if (
+      profile?.dietary_restrictions &&
+      profile.dietary_restrictions.length > 0
+    ) {
+      const restrictions = profile.dietary_restrictions.join(",");
+      query = query.or(
+        `gen_ingredients.is.null,gen_ingredients.not.ov.{${restrictions}}`,
+      );
     }
 
     const { data: foods } = await query;
@@ -75,6 +82,13 @@ export default function InitialUserflowPage() {
 
   useEffect(() => {
     fetchProfile();
+
+    const handlePopState = () => {
+      fetchProfile();
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
   const handleSubmit = async (history: HistoryEntry[]) => {
@@ -122,6 +136,10 @@ export default function InitialUserflowPage() {
     router.push("/");
   };
 
+  const handleBackToHome = () => {
+    router.push("/");
+  };
+
   return (
     <main
       className="min-h-screen flex items-center justify-center p-4 overflow-hidden"
@@ -129,11 +147,11 @@ export default function InitialUserflowPage() {
     >
       <div className="w-full min-h-[calc(100vh-2rem)] max-w-4xl">
         <div className="min-h-[calc(100vh-2rem)] bg-black rounded-3xl shadow-lg shadow-black/40 p-8">
-          <div className="flex items-start justify-between gap-4 mb-8">
+          <div className="flex items-start justify-between gap-4 mb-8 select-none">
             {section === 1 ? (
               <header>
                 <h1 className="text-3xl font-semibold text-white">
-                  Choose your favorites
+                  Choose your favourites
                 </h1>
                 <p className="mt-2 text-sm text-slate-300 max-w-2xl">
                   Swipe through the suggestions to build your personalized
@@ -148,15 +166,27 @@ export default function InitialUserflowPage() {
               </header>
             )}
 
-            <Button
-              type="button"
-              variant="destructive"
-              size="lg"
-              onClick={handleLogout}
-              disabled={isLoggingOut}
-            >
-              {isLoggingOut ? "Signing out…" : "Logout"}
-            </Button>
+            <div className="flex items-center gap-2">
+              {!initialUserflow && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="lg"
+                  onClick={handleBackToHome}
+                >
+                  Back
+                </Button>
+              )}
+              <Button
+                type="button"
+                variant="destructive"
+                size="lg"
+                onClick={handleLogout}
+                disabled={isLoggingOut}
+              >
+                {isLoggingOut ? "Signing out…" : "Logout"}
+              </Button>
+            </div>
           </div>
           <section className="flex flex-col items-center gap-4">
             {section === 1 && (

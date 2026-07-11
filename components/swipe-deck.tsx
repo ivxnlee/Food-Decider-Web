@@ -365,6 +365,7 @@ export default function SwipeDeck({
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
+              userSelect: "none",
             }}
           >
             {isLoading ? (

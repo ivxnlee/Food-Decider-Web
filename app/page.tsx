@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/utils/supabase/client";
 import Link from "next/link";
@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Settings02Icon } from "@hugeicons/core-free-icons";
 import { SettingsModal } from "@/components/settings-modal";
+import { LikesModal } from "@/components/likes-modal";
 
 interface FoodData {
   id: number;
@@ -39,12 +40,21 @@ export default function DashboardPage() {
   const [vegetarian, setVegetarian] = useState<boolean>(false);
   const [favouriteFoods, setFavouriteFoods] = useState<number[] | null>(null);
   const [lockedFoods, setLockedFoods] = useState<FoodData[] | null>(null);
+  const [favouriteFoodEntries, setFavouriteFoodEntries] = useState<FoodData[]>(
+    [],
+  );
+  const [suggestedFoods, setSuggestedFoods] = useState<FoodData[]>([]);
   const [isTouch, setIsTouch] = useState<boolean>(false);
   const [currentEntryID, setCurrentEntryID] = useState<number>(0);
   const [lockLoading, setLockLoading] = useState<boolean>(false);
+  const [likesMutating, setLikesMutating] = useState<boolean>(false);
 
-  // Settings Modal States
+  // Modal States
   const [settingsModalOpen, setSettingsModalOpen] = useState<boolean>(false);
+  const [likesModalOpen, setLikesModalOpen] = useState<boolean>(false);
+  const [secondsLeft, setSecondsLeft] = useState(0);
+  const COOLDOWN_SECONDS = 120; // 2 minutes
+  const STORAGE_KEY = "suggestion_cooldown_until";
 
   useEffect(() => {
     setMounted(true);
@@ -54,6 +64,12 @@ export default function DashboardPage() {
       "ontouchstart" in window ||
       navigator.maxTouchPoints > 0;
     setIsTouch(touch);
+
+    const storedUntil = localStorage.getItem(STORAGE_KEY);
+    if (storedUntil) {
+      const remaining = Math.ceil((Number(storedUntil) - Date.now()) / 1000);
+      if (remaining > 0) setSecondsLeft(remaining);
+    }
   }, []);
 
   // Handle OTP expiration error from query params or hash params
@@ -92,6 +108,31 @@ export default function DashboardPage() {
     return () => document.removeEventListener("pointerdown", handleOutsideTap);
   }, [isTouch, currentEntryID]);
 
+  // Tick every second while like modal suggestion cooldown is active
+  useEffect(() => {
+    if (secondsLeft <= 0) return;
+
+    const interval = setInterval(() => {
+      setSecondsLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          localStorage.removeItem(STORAGE_KEY);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [secondsLeft]);
+
+  // Call this right after a successful like modal suggestion submission
+  const startCooldown = useCallback(() => {
+    const until = Date.now() + COOLDOWN_SECONDS * 1000;
+    localStorage.setItem(STORAGE_KEY, String(until));
+    setSecondsLeft(COOLDOWN_SECONDS);
+  }, []);
+
   const fetchProfile = async () => {
     const {
       data: { session },
@@ -113,29 +154,112 @@ export default function DashboardPage() {
       .eq("id", session.user.id)
       .single();
 
-    setCity(profile?.city ?? "");
-    setDietaryRestrictions(profile?.dietary_restrictions ?? []);
-    setHalal(Boolean(profile?.halal));
-    setVegan(Boolean(profile?.vegan));
-    setVegetarian(Boolean(profile?.vegetarian));
+    const profileCity = profile?.city ?? "";
+    const profileDietaryRestrictions = profile?.dietary_restrictions ?? [];
+    const profileHalal = Boolean(profile?.halal);
+    const profileVegan = Boolean(profile?.vegan);
+    const profileVegetarian = Boolean(profile?.vegetarian);
+
+    setCity(profileCity);
+    setDietaryRestrictions(profileDietaryRestrictions);
+    setHalal(profileHalal);
+    setVegan(profileVegan);
+    setVegetarian(profileVegetarian);
 
     if (profile?.initial_userflow === true) {
       router.push("/initial-userflow");
-    } else if (profile?.favourite_foods && profile.favourite_foods.length > 0) {
-      setSuggestAgainDays(profile.suggest_again_days);
-      setFavouriteFoods(profile.favourite_foods);
-      getAvailableFavouriteFoods(profile.favourite_foods);
+      return;
+    }
+
+    const favouriteFoodIds = profile?.favourite_foods ?? [];
+    setSuggestAgainDays(profile?.suggest_again_days ?? 4);
+    setFavouriteFoods(favouriteFoodIds);
+
+    if (favouriteFoodIds.length > 0) {
+      await getAvailableFavouriteFoods(favouriteFoodIds);
+      await fetchSuggestedFoods(
+        favouriteFoodIds,
+        profileCity,
+        profileHalal,
+        profileVegan,
+        profileVegetarian,
+      );
+    } else {
+      setFavouriteFoodEntries([]);
+      setLockedFoods([]);
+      setMappedFoods([]);
+      await fetchSuggestedFoods(
+        [],
+        profileCity,
+        profileHalal,
+        profileVegan,
+        profileVegetarian,
+      );
     }
   };
 
+  const fetchSuggestedFoods = async (
+    currentFavouriteIds: number[] = [],
+    profileCity = city,
+    profileHalal = halal,
+    profileVegan = vegan,
+    profileVegetarian = vegetarian,
+  ) => {
+    let query = supabase
+      .from("foods")
+      .select("id, name, desc, cuisine, image_url")
+      .limit(10);
+
+    if (profileCity) {
+      query = query.contains("city", [profileCity]);
+    }
+    if (profileHalal) {
+      query = query.eq("halal", true);
+    }
+    if (profileVegan) {
+      query = query.eq("vegan", true);
+    }
+    if (profileVegetarian) {
+      query = query.eq("vegetarian", true);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error("Error fetching suggested foods:", error);
+      return;
+    }
+
+    const filteredFoods = (data ?? []).filter(
+      (food) => !currentFavouriteIds.includes(food.id),
+    ) as FoodData[];
+    setSuggestedFoods(filteredFoods);
+  };
+
   const getAvailableFavouriteFoods = async (favourite_foods: number[]) => {
-    const { data } = await supabase.rpc("get_available_favourite_foods", {
-      p_food_ids: favourite_foods,
-    });
+    if (favourite_foods.length === 0) {
+      setFavouriteFoodEntries([]);
+      setLockedFoods([]);
+      setMappedFoods([]);
+      return;
+    }
+
+    const { data, error } = await supabase.rpc(
+      "get_available_favourite_foods",
+      {
+        p_food_ids: favourite_foods,
+      },
+    );
+
+    if (error) {
+      console.error("Error loading favourite foods:", error);
+      return;
+    }
 
     const foods = data as FoodData[] | null;
 
     if (foods && foods.length > 0) {
+      setFavouriteFoodEntries(foods);
       const availableFoods = foods.filter((f) => !f.is_locked);
       const lockedFoods = foods.filter((f) => f.is_locked);
       setLockedFoods(lockedFoods);
@@ -150,7 +274,13 @@ export default function DashboardPage() {
           chance: 0.1,
         }));
         setMappedFoods(mappedFoods);
+      } else {
+        setMappedFoods([]);
       }
+    } else {
+      setFavouriteFoodEntries([]);
+      setLockedFoods([]);
+      setMappedFoods([]);
     }
   };
 
@@ -185,8 +315,81 @@ export default function DashboardPage() {
     favouriteFoods && getAvailableFavouriteFoods(favouriteFoods);
   };
 
+  const handleLikeFood = async (foodID: number) => {
+    if (!userID) return;
+
+    setLikesMutating(true);
+
+    const updatedFavouriteFoods = favouriteFoods
+      ? Array.from(new Set([...favouriteFoods, foodID]))
+      : [foodID];
+
+    const { error } = await supabase
+      .from("account_settings")
+      .update({ favourite_foods: updatedFavouriteFoods })
+      .eq("id", userID)
+      .select();
+
+    if (error) {
+      console.error("Error liking food:", error);
+      setLikesMutating(false);
+      return;
+    }
+
+    setFavouriteFoods(updatedFavouriteFoods);
+    await getAvailableFavouriteFoods(updatedFavouriteFoods);
+    await fetchSuggestedFoods(
+      updatedFavouriteFoods,
+      city,
+      halal,
+      vegan,
+      vegetarian,
+    );
+    toast.success("Food added to your likes");
+    setLikesMutating(false);
+  };
+
+  const handleUnlikeFood = async (foodID: number) => {
+    if (!userID || !favouriteFoods) return;
+
+    setLikesMutating(true);
+
+    const updatedFavouriteFoods = favouriteFoods.filter((id) => id !== foodID);
+
+    const { error } = await supabase
+      .from("account_settings")
+      .update({ favourite_foods: updatedFavouriteFoods })
+      .eq("id", userID)
+      .select();
+
+    if (error) {
+      console.error("Error unliking food:", error);
+      setLikesMutating(false);
+      return;
+    }
+
+    setFavouriteFoods(updatedFavouriteFoods);
+    await getAvailableFavouriteFoods(updatedFavouriteFoods);
+    await fetchSuggestedFoods(
+      updatedFavouriteFoods,
+      city,
+      halal,
+      vegan,
+      vegetarian,
+    );
+    toast.success("Food removed from your likes");
+    setLikesMutating(false);
+  };
+
   useEffect(() => {
     fetchProfile();
+
+    const handlePopState = () => {
+      fetchProfile();
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
   const handleLogout = async () => {
@@ -255,19 +458,7 @@ export default function DashboardPage() {
   };
 
   const reselectFavourites = async () => {
-    const { data, error } = await supabase
-      .from("account_settings")
-      .update({
-        initial_userflow: true,
-      })
-      .eq("id", userID)
-      .select();
-
-    if (error) {
-      console.error("Error updating preferences:", error);
-    } else {
-      router.push("/initial-userflow");
-    }
+    router.push("/initial-userflow");
   };
 
   const onDeleteAccount = async () => {
@@ -281,6 +472,31 @@ export default function DashboardPage() {
     } else {
       handleLogout();
     }
+  };
+
+  const handleSuggestionSubmit = async (suggestion: string) => {
+    if (!userID) return;
+
+    setLikesMutating(true);
+
+    const { error } = await supabase.from("suggestions").insert({
+      user_id: userID,
+      name: suggestion,
+    });
+
+    if (error) {
+      if (error.code === "P0001") {
+        toast.error("Please wait before submitting another suggestion.");
+      } else {
+        console.error("Error submitting suggestion:", error);
+        toast.error("Error submitting suggestion. Please try again.");
+      }
+    } else {
+      toast.success("Suggestion submitted successfully!");
+      startCooldown();
+    }
+
+    setLikesMutating(false);
   };
 
   return (
@@ -321,7 +537,15 @@ export default function DashboardPage() {
             <div className="flex items-center gap-4">
               <Button
                 type="button"
-                variant="destructive"
+                variant="green"
+                className="w-30 h-15 text-3xl"
+                onClick={() => setLikesModalOpen(true)}
+              >
+                Likes
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
                 className="w-15 h-15"
                 onClick={() => setSettingsModalOpen(true)}
               >
@@ -435,6 +659,17 @@ export default function DashboardPage() {
           </p>
         </section>
       </div>
+      <LikesModal
+        open={likesModalOpen}
+        onClose={() => setLikesModalOpen(false)}
+        favouriteFoods={favouriteFoodEntries}
+        suggestions={suggestedFoods}
+        onUnlike={handleUnlikeFood}
+        onLike={handleLikeFood}
+        onSuggestionSubmit={handleSuggestionSubmit}
+        isMutating={likesMutating}
+        secondsLeft={secondsLeft}
+      />
       <SettingsModal
         open={settingsModalOpen}
         onClose={() => setSettingsModalOpen(false)}
@@ -447,6 +682,7 @@ export default function DashboardPage() {
         initialHalal={halal}
         initialVegan={vegan}
         initialVegetarian={vegetarian}
+        initialSuggestAgainDays={suggestAgainDays}
       />
     </main>
   );

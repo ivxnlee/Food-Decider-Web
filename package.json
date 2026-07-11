@@ -1,6 +1,6 @@
 {
-  "name": "food-decider-web",
-  "version": "0.6.0",
+  "name": "food-decider",
+  "version": "0.7.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
