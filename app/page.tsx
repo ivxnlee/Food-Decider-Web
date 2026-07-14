@@ -554,77 +554,77 @@ export default function DashboardPage() {
       <div className="w-full m-6 h-full bg-sky-100 dark:bg-black shadow-black/30 shadow-xl rounded-3xl p-8">
         <header className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between mb-6">
           <div>
-            <h1 className="text-5xl font-semibold text-slate-800 dark:text-slate-50">
+            <h1 className="text-3xl sm:text-5xl font-semibold text-slate-800 dark:text-slate-50">
               Food Decider (Beta)
             </h1>
-            <p className="mt-1 text-xl text-slate-600 dark:text-slate-400">
+            <p className="mt-1 sm:text-xl text-slate-600 dark:text-slate-400">
               Can't decide your next meal? Let fate (and flavor) choose for you
               🍜✨
             </p>
           </div>
           {initStatus === "logged out" && (
-            <div className="flex items-center gap-4">
+            <div className="flex items-center justify-end gap-2 sm:gap-4">
               <Button
                 type="button"
                 variant="blue"
-                className="w-15 h-15"
+                className="w-10 h-10 sm:w-15 sm:h-15"
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
               >
                 <HugeiconsIcon
                   icon={theme === "dark" ? Sun02Icon : Moon02Icon}
                   strokeWidth={2}
                   size={30}
-                  className="size-7.5"
+                  className="size-5 sm:size-7.5"
                 />
               </Button>
               <Button
                 asChild
                 variant="green"
-                className="mr-2 w-35 h-15 text-3xl"
+                className="mr-1 sm:mr-2 w-20 h-10 text-sm sm:w-35 sm:h-15 sm:text-3xl"
               >
                 <Link href="/login">Log in</Link>
               </Button>
               <Button
                 asChild
                 variant="destructive"
-                className="w-35 h-15 text-3xl"
+                className="w-20 h-10 text-sm sm:w-35 sm:h-15 sm:text-3xl"
               >
                 <Link href="/signup">Sign up</Link>
               </Button>
             </div>
           )}
           {initStatus === "logged in" && (
-            <div className="flex items-center gap-4">
+            <div className="flex items-center justify-end gap-2 sm:gap-4">
               <Button
                 type="button"
                 variant="blue"
-                className="w-15 h-15"
+                className="w-10 h-10 sm:w-15 sm:h-15"
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
               >
                 <HugeiconsIcon
                   icon={theme === "dark" ? Sun02Icon : Moon02Icon}
                   strokeWidth={2}
                   size={30}
-                  className="size-7.5"
+                  className="size-5 sm:size-7.5"
                 />
               </Button>
               <Button
                 type="button"
                 variant="blue"
-                className="w-15 h-15"
+                className="w-10 h-10 sm:w-15 sm:h-15"
                 onClick={() => setSettingsModalOpen(true)}
               >
                 <HugeiconsIcon
                   icon={Settings02Icon}
                   strokeWidth={2}
                   size={30}
-                  className="size-7.5"
+                  className="size-5 sm:size-7.5"
                 />
               </Button>
               <Button
                 type="button"
                 variant="green"
-                className="w-30 h-15 text-3xl"
+                className="w-16 h-10 text-sm sm:w-30 sm:h-15 sm:text-3xl"
                 onClick={() => setLikesModalOpen(true)}
               >
                 Likes
@@ -632,7 +632,7 @@ export default function DashboardPage() {
               <Button
                 type="button"
                 variant="destructive"
-                className="w-40 h-15 text-3xl"
+                className="w-20 h-10 text-sm sm:w-40 sm:h-15 sm:text-3xl"
                 onClick={handleLogout}
                 disabled={isLoggingOut}
               >
