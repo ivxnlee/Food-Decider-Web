@@ -567,27 +567,27 @@ export default function DashboardPage() {
               <Button
                 type="button"
                 variant="blue"
-                className="w-10 h-10 sm:w-15 sm:h-15"
+                className="w-12 h-12 sm:w-15 sm:h-15"
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
               >
                 <HugeiconsIcon
                   icon={theme === "dark" ? Sun02Icon : Moon02Icon}
                   strokeWidth={2}
                   size={30}
-                  className="size-5 sm:size-7.5"
+                  className="size-6 sm:size-7.5"
                 />
               </Button>
               <Button
                 asChild
                 variant="green"
-                className="mr-1 sm:mr-2 w-20 h-10 text-sm sm:w-35 sm:h-15 sm:text-3xl"
+                className="mr-1 sm:mr-2 w-23 h-12 text-base sm:w-35 sm:h-15 sm:text-3xl"
               >
                 <Link href="/login">Log in</Link>
               </Button>
               <Button
                 asChild
                 variant="destructive"
-                className="w-20 h-10 text-sm sm:w-35 sm:h-15 sm:text-3xl"
+                className="w-23 h-12 text-base sm:w-35 sm:h-15 sm:text-3xl"
               >
                 <Link href="/signup">Sign up</Link>
               </Button>
@@ -598,33 +598,33 @@ export default function DashboardPage() {
               <Button
                 type="button"
                 variant="blue"
-                className="w-10 h-10 sm:w-15 sm:h-15"
+                className="w-12 h-12 sm:w-15 sm:h-15"
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
               >
                 <HugeiconsIcon
                   icon={theme === "dark" ? Sun02Icon : Moon02Icon}
                   strokeWidth={2}
                   size={30}
-                  className="size-5 sm:size-7.5"
+                  className="size-6 sm:size-7.5"
                 />
               </Button>
               <Button
                 type="button"
                 variant="blue"
-                className="w-10 h-10 sm:w-15 sm:h-15"
+                className="w-12 h-12 sm:w-15 sm:h-15"
                 onClick={() => setSettingsModalOpen(true)}
               >
                 <HugeiconsIcon
                   icon={Settings02Icon}
                   strokeWidth={2}
                   size={30}
-                  className="size-5 sm:size-7.5"
+                  className="size-6 sm:size-7.5"
                 />
               </Button>
               <Button
                 type="button"
                 variant="green"
-                className="w-16 h-10 text-sm sm:w-30 sm:h-15 sm:text-3xl"
+                className="w-18 h-12 text-base sm:w-30 sm:h-15 sm:text-3xl"
                 onClick={() => setLikesModalOpen(true)}
               >
                 Likes
@@ -632,7 +632,7 @@ export default function DashboardPage() {
               <Button
                 type="button"
                 variant="destructive"
-                className="w-20 h-10 text-sm sm:w-40 sm:h-15 sm:text-3xl"
+                className="w-23 h-12 text-base sm:w-35 sm:h-15 sm:text-3xl"
                 onClick={handleLogout}
                 disabled={isLoggingOut}
               >
@@ -646,12 +646,11 @@ export default function DashboardPage() {
           {initStatus === "logged out" && (
             <div className="p-6 rounded-3xl border border-amber-600 bg-amber-800 shadow-inner shadow-slate-950/40">
               <h2 className="text-xl font-medium dark:text-slate-50">
-                DEMO MODE
+                Want more features?
               </h2>
-              <p className="mt-2 text-sm leading-6 dark:text-slate-50">
-                Create an account to save your preferences and get personalized
-                food suggestions! This demo resets each visit. Sign up now to
-                start your flavor adventure! 🍕🍣🥗
+              <p className="mt-2 text-xs sm:text-sm leading-6 dark:text-slate-50">
+                Create an account for cross-device syncing, location
+                suggestions, and more!
               </p>
             </div>
           )}
