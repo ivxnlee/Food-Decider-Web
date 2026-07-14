@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/utils/supabase/client";
 import Link from "next/link";
@@ -31,6 +31,11 @@ export default function DashboardPage() {
   const router = useRouter();
   const supabase = createClient();
   const { theme, setTheme } = useTheme();
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
+  const isFirstRun = useRef(true);
+  const isSyncingThemeFromServer = useRef(false);
   const [initStatus, setInitStatus] = useState<
     "loading" | "logged in" | "logged out"
   >("loading");
@@ -132,6 +137,40 @@ export default function DashboardPage() {
     return () => clearInterval(interval);
   }, [secondsLeft]);
 
+  // Sync theme changes to Supabase for logged-in users
+  useEffect(() => {
+    // Skip firing on initial mount/hydration
+    if (isFirstRun.current) {
+      isFirstRun.current = false;
+      return;
+    }
+
+    if (initStatus !== "logged in" || !userID) return;
+
+    if (isSyncingThemeFromServer.current) {
+      isSyncingThemeFromServer.current = false; // consume the flag, don't submit
+      return;
+    }
+
+    // Clear any pending submit — user changed theme again
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+
+    timeoutRef.current = setTimeout(async () => {
+      const supabase = createClient();
+      const { error } = await supabase
+        .from("account_settings")
+        .update({ theme })
+        .eq("id", userID);
+
+      if (error) console.error("Failed to sync theme:", error);
+    }, 5_000);
+
+    // Cleanup on unmount
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, [theme]);
+
   // Call this right after a successful like modal suggestion submission
   const startCooldown = useCallback(() => {
     const until = Date.now() + COOLDOWN_SECONDS * 1000;
@@ -171,6 +210,11 @@ export default function DashboardPage() {
     setHalal(profileHalal);
     setVegan(profileVegan);
     setVegetarian(profileVegetarian);
+
+    if (profile?.theme && profile.theme !== theme) {
+      isSyncingThemeFromServer.current = true;
+      setTheme(profile.theme);
+    }
 
     if (profile?.initial_userflow === true) {
       router.push("/initial-userflow");
