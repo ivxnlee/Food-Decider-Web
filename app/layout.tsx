@@ -58,8 +58,8 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col">
-        <StarfieldBackground count={35} speed={0.35} />
         <ThemeProvider>
+          <StarfieldBackground count={35} speed={0.35} />
           <TooltipProvider>
             {children}
             <Toaster richColors />

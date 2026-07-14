@@ -159,24 +159,27 @@ export function SettingsModal({
       />
 
       {/* Panel */}
-      <div className="relative bg-black rounded-lg shadow-xl p-8 max-w-md w-full mx-4 border border-white/10">
-        <button
-          type="button"
+      <div className="relative bg-sky-100 dark:bg-black rounded-lg shadow-xl p-8 max-w-md w-full mx-4 border border-white/10">
+        <Button
           onClick={handleClose}
-          className="absolute right-4 top-4 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-base font-medium text-slate-200 transition hover:bg-white/20"
+          variant="close"
+          size="xlg"
+          className="absolute right-4 top-4"
         >
           Close
-        </button>
+        </Button>
         <div className="flex flex-col items-center text-center">
           {/* Icon */}
           <HugeiconsIcon
             icon={Settings02Icon}
             strokeWidth={2}
             size={30}
-            className="size-7.5"
+            className="size-7.5 text-slate-800 dark:text-white"
           />
-          <h2 className="mt-4 text-2xl font-semibold text-white">Settings</h2>
-          <p className="mt-2 text-sm text-slate-300 max-w-xs">
+          <h2 className="mt-4 text-2xl font-semibold text-slate-800 dark:text-white">
+            Settings
+          </h2>
+          <p className="mt-2 text-sm text-slate-600 dark:text-slate-300 max-w-xs">
             Update your experience preferences and manage permanent account
             changes.
           </p>
@@ -214,7 +217,7 @@ export function SettingsModal({
               </label>
               <Button
                 type="button"
-                variant="secondary"
+                variant="brightgreen"
                 className="w-full justify-center"
                 disabled={cooldown > 0}
                 onClick={handleSaveChanges}
@@ -253,7 +256,7 @@ export function SettingsModal({
                 </Button>
                 <Button
                   type="button"
-                  variant="destructive"
+                  variant="brightdestructive"
                   className="w-full justify-center"
                   onClick={() => {
                     setDeleteConfirmed(false);
@@ -270,12 +273,12 @@ export function SettingsModal({
         {section === "change-pref" && (
           <div className="mt-8 space-y-6">
             <div className="flex items-center justify-between gap-4">
-              <h3 className="text-lg font-semibold text-white">
+              <h3 className="text-lg font-semibold text-slate-800 dark:text-white">
                 Change preferences
               </h3>
               <Button
                 type="button"
-                variant="secondary"
+                variant="blue"
                 className="h-10 px-4"
                 onClick={() => setSection("main")}
               >
@@ -312,7 +315,7 @@ export function SettingsModal({
                   <DropdownMenuTrigger asChild>
                     <Button
                       variant="outline"
-                      className="w-full justify-between"
+                      className="w-full justify-between text-slate-800 dark:text-white"
                     >
                       {dietaryRestrictions.length === 0
                         ? "Select dietary restrictions..."
@@ -365,7 +368,7 @@ export function SettingsModal({
                 <Toggle
                   pressed={halal}
                   onPressedChange={setHalal}
-                  className="flex-1 h-10 justify-center data-[state=on]:bg-sky-700 data-[state=off]:bg-slate-700 hover:data-[state=off]:bg-slate-600 text-white"
+                  className="flex-1 h-10 justify-center data-[state=on]:bg-sky-700 data-[state=off]:bg-slate-700 hover:data-[state=off]:bg-slate-600 text-white hover:text-white"
                 >
                   {halal ? "Yes" : "No"}
                 </Toggle>
@@ -377,7 +380,7 @@ export function SettingsModal({
                 <Toggle
                   pressed={vegan}
                   onPressedChange={setVegan}
-                  className="flex-1 h-10 justify-center data-[state=on]:bg-sky-700 data-[state=off]:bg-slate-700 hover:data-[state=off]:bg-slate-600 text-white"
+                  className="flex-1 h-10 justify-center data-[state=on]:bg-sky-700 data-[state=off]:bg-slate-700 hover:data-[state=off]:bg-slate-600 text-white hover:text-white"
                 >
                   {vegan ? "Yes" : "No"}
                 </Toggle>
@@ -389,7 +392,7 @@ export function SettingsModal({
                 <Toggle
                   pressed={vegetarian}
                   onPressedChange={setVegetarian}
-                  className="flex-1 h-10 justify-center data-[state=on]:bg-sky-700 data-[state=off]:bg-slate-700 hover:data-[state=off]:bg-slate-600 text-white"
+                  className="flex-1 h-10 justify-center data-[state=on]:bg-sky-700 data-[state=off]:bg-slate-700 hover:data-[state=off]:bg-slate-600 text-white hover:text-white"
                 >
                   {vegetarian ? "Yes" : "No"}
                 </Toggle>
@@ -397,7 +400,7 @@ export function SettingsModal({
 
               <Button
                 type="button"
-                variant="green"
+                variant="brightgreen"
                 className="w-full justify-center"
                 onClick={handleSavePreferences}
               >
@@ -409,12 +412,12 @@ export function SettingsModal({
         {section === "delete-account" && (
           <div className="mt-8 space-y-6">
             <div className="flex items-center justify-between gap-4">
-              <h3 className="text-lg font-semibold text-white">
+              <h3 className="text-lg font-semibold text-slate-800 dark:text-white">
                 Delete account
               </h3>
               <Button
                 type="button"
-                variant="secondary"
+                variant="blue"
                 className="h-10 px-4"
                 onClick={() => setSection("main")}
               >
@@ -438,7 +441,7 @@ export function SettingsModal({
               </label>
               <Button
                 type="button"
-                variant="destructive"
+                variant="brightdestructive"
                 className="w-full justify-center"
                 disabled={!deleteConfirmed}
                 onClick={handleDeleteAccount}

@@ -75,18 +75,15 @@ export default function LoginPage() {
   };
 
   return (
-    <main
-      className="min-h-screen flex items-center justify-center p-4"
-      style={{ backgroundColor: "lab(2.75381% 0 0)" }}
-    >
+    <main className="bg-blue-100 dark:bg-[lab(2.75381%_0_0)] min-h-screen flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <div className="bg-black dark:bg-black rounded-lg shadow-lg p-8">
-          <h1 className="text-3xl font-bold text-center mb-8 text-white dark:text-white">
+        <div className="bg-sky-100 dark:bg-black rounded-lg shadow-lg p-8">
+          <h1 className="text-3xl font-bold text-center mb-8 text-slate-800 dark:text-white">
             Log In
           </h1>
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-white dark:text-white mb-2">
+              <label className="block text-sm font-medium text-slate-800 dark:text-white mb-2">
                 Email
               </label>
               <Input
@@ -98,7 +95,7 @@ export default function LoginPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-white dark:text-white mb-2">
+              <label className="block text-sm font-medium text-slate-800 dark:text-white mb-2">
                 Password
               </label>
               <Input
@@ -124,14 +121,17 @@ export default function LoginPage() {
             <button
               type="button"
               onClick={() => setShowResetModal(true)}
-              className="text-sm text-white/70 hover:text-white underline"
+              className="text-sm text-slate-800 hover:text-black dark:text-white/70 dark:hover:text-white underline"
             >
               Forgot password?
             </button>
           </div>
-          <p className="mt-6 text-center text-white dark:text-white">
+          <p className="mt-6 text-center text-slate-800 dark:text-white">
             Don't have an account?{" "}
-            <Link href="/signup" className="underline hover:text-gray-300">
+            <Link
+              href="/signup"
+              className="underline hover:text-black dark:hover:text-gray-300"
+            >
               Sign up
             </Link>
           </p>

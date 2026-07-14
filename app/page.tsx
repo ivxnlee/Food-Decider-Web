@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useTheme } from "next-themes";
 import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/utils/supabase/client";
@@ -8,7 +9,11 @@ import Link from "next/link";
 import FoodSpinner, { FoodItem } from "@/components/food-spinner";
 import { toast } from "sonner";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Settings02Icon } from "@hugeicons/core-free-icons";
+import {
+  Moon02Icon,
+  Settings02Icon,
+  Sun02Icon,
+} from "@hugeicons/core-free-icons";
 import { SettingsModal } from "@/components/settings-modal";
 import { LikesModal } from "@/components/likes-modal";
 
@@ -25,6 +30,7 @@ interface FoodData {
 export default function DashboardPage() {
   const router = useRouter();
   const supabase = createClient();
+  const { theme, setTheme } = useTheme();
   const [initStatus, setInitStatus] = useState<
     "loading" | "logged in" | "logged out"
   >("loading");
@@ -500,23 +506,33 @@ export default function DashboardPage() {
   };
 
   return (
-    <main
-      style={{ backgroundColor: "lab(2.75381% 0 0)" }}
-      className="min-h-screen text-slate-100 flex items-start justify-center py-3"
-    >
-      <div className="w-full m-6 h-full bg-black shadow-black/30 shadow-xl rounded-3xl p-8">
+    <main className="bg-blue-100 dark:bg-[lab(2.75381%_0_0)] min-h-screen text-slate-100 flex items-start justify-center py-3">
+      <div className="w-full m-6 h-full bg-sky-100 dark:bg-black shadow-black/30 shadow-xl rounded-3xl p-8">
         <header className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between mb-6">
           <div>
-            <h1 className="text-5xl font-semibold text-slate-50">
+            <h1 className="text-5xl font-semibold text-slate-800 dark:text-slate-50">
               Food Decider (Beta)
             </h1>
-            <p className="mt-1 text-xl text-slate-400">
+            <p className="mt-1 text-xl text-slate-600 dark:text-slate-400">
               Can't decide your next meal? Let fate (and flavor) choose for you
               🍜✨
             </p>
           </div>
           {initStatus === "logged out" && (
             <div className="flex items-center gap-4">
+              <Button
+                type="button"
+                variant="blue"
+                className="w-15 h-15"
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              >
+                <HugeiconsIcon
+                  icon={theme === "dark" ? Sun02Icon : Moon02Icon}
+                  strokeWidth={2}
+                  size={30}
+                  className="size-7.5"
+                />
+              </Button>
               <Button
                 asChild
                 variant="green"
@@ -537,15 +553,20 @@ export default function DashboardPage() {
             <div className="flex items-center gap-4">
               <Button
                 type="button"
-                variant="green"
-                className="w-30 h-15 text-3xl"
-                onClick={() => setLikesModalOpen(true)}
+                variant="blue"
+                className="w-15 h-15"
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
               >
-                Likes
+                <HugeiconsIcon
+                  icon={theme === "dark" ? Sun02Icon : Moon02Icon}
+                  strokeWidth={2}
+                  size={30}
+                  className="size-7.5"
+                />
               </Button>
               <Button
                 type="button"
-                variant="secondary"
+                variant="blue"
                 className="w-15 h-15"
                 onClick={() => setSettingsModalOpen(true)}
               >
@@ -555,6 +576,14 @@ export default function DashboardPage() {
                   size={30}
                   className="size-7.5"
                 />
+              </Button>
+              <Button
+                type="button"
+                variant="green"
+                className="w-30 h-15 text-3xl"
+                onClick={() => setLikesModalOpen(true)}
+              >
+                Likes
               </Button>
               <Button
                 type="button"
@@ -572,8 +601,10 @@ export default function DashboardPage() {
         <section className="grid gap-4">
           {initStatus === "logged out" && (
             <div className="p-6 rounded-3xl border border-amber-600 bg-amber-800 shadow-inner shadow-slate-950/40">
-              <h2 className="text-xl font-medium text-slate-50">DEMO MODE</h2>
-              <p className="mt-2 text-sm leading-6 text-slate-50">
+              <h2 className="text-xl font-medium dark:text-slate-50">
+                DEMO MODE
+              </h2>
+              <p className="mt-2 text-sm leading-6 dark:text-slate-50">
                 Create an account to save your preferences and get personalized
                 food suggestions! This demo resets each visit. Sign up now to
                 start your flavor adventure! 🍕🍣🥗
@@ -590,7 +621,7 @@ export default function DashboardPage() {
           />
 
           {lockedFoods && lockedFoods.length > 0 && (
-            <div className="w-full overflow-hidden rounded-2xl border border-emerald-500/30 bg-emerald-500/10">
+            <div className="w-full overflow-hidden rounded-2xl border border-emerald-900 bg-emerald-950/90 dark:border-emerald-500/30 dark:bg-emerald-500/10">
               <div className="sticky top-0 z-10 flex h-11 items-center justify-center border-b border-emerald-500/20 bg-emerald-500/10 text-sm font-semibold text-emerald-400">
                 Locked Foods ({lockedFoods.length})
               </div>
@@ -600,7 +631,7 @@ export default function DashboardPage() {
                     <div
                       key={entry.id}
                       data-entry-id={entry.id}
-                      className="group relative flex w-49 items-center gap-3 rounded-xl border border-white/10 bg-white/10 p-3 transition hover:cursor-pointer"
+                      className="group relative flex w-49 items-center gap-3 rounded-xl border border-slate-400 bg-slate-500 hover:bg-slate-600 dark:border-white/10 dark:bg-white/10 dark:hover:bg-white/20 transition p-3 hover:cursor-pointer"
                       onClick={() => isTouch && setCurrentEntryID(entry.id)}
                     >
                       {entry.image_url && (
@@ -616,7 +647,7 @@ export default function DashboardPage() {
                           {entry.name}
                         </div>
                         {entry.cuisine && entry.cuisine.length > 0 && (
-                          <div className="mt-1 truncate text-sm text-slate-400">
+                          <div className="mt-1 truncate text-sm text-slate-300 dark:text-slate-400">
                             {entry.cuisine.join(", ")}
                           </div>
                         )}
@@ -645,7 +676,7 @@ export default function DashboardPage() {
               </div>
             </div>
           )}
-          <p className="mt-0 text-base text-slate-300">
+          <p className="mt-0 text-base text-slate-700 dark:text-slate-300">
             psst —{" "}
             <a
               href="https://ivanl.dev"

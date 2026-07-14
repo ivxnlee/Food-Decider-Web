@@ -56,7 +56,7 @@ export function Modal({
       />
 
       {/* Panel */}
-      <div className="relative bg-black rounded-lg shadow-xl p-8 max-w-md w-full mx-4 border border-white/10">
+      <div className="relative bg-sky-100 dark:bg-black rounded-lg shadow-xl p-8 max-w-md w-full mx-4 border border-white/10">
         <div className="flex flex-col items-center text-center">
           {/* Icon */}
           <div
@@ -66,10 +66,14 @@ export function Modal({
           </div>
 
           {/* Title */}
-          <h2 className="text-2xl font-bold text-white mb-2">{title}</h2>
+          <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-2">
+            {title}
+          </h2>
 
           {/* Description */}
-          <div className="text-slate-300 mb-6">{description}</div>
+          <div className="text-slate-600 dark:text-slate-300 mb-6">
+            {description}
+          </div>
           <div className="w-full flex flex-col gap-2">
             {/* Primary action */}
             <Tooltip
@@ -91,7 +95,7 @@ export function Modal({
                 </span>
               </TooltipTrigger>
               {action.disabled && (
-                <TooltipContent className="bg-red-800 text-white">
+                <TooltipContent className="bg-red-800 text-slate-800 dark:text-white">
                   <p className="text-sm text-slate-200">{action.tooltipText}</p>
                 </TooltipContent>
               )}
@@ -100,11 +104,10 @@ export function Modal({
             {/* Optional secondary action */}
             {secondaryAction && (
               <Button
-                variant="secondary"
+                variant="brightgreen"
                 onClick={secondaryAction.onClick}
                 className={
-                  secondaryAction.className ??
-                  "w-full mt-2 text-slate-400 hover:text-white"
+                  secondaryAction.className ?? "w-full mt-2 text-white"
                 }
               >
                 {secondaryAction.label}

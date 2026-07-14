@@ -143,18 +143,15 @@ export default function SignUpPage() {
   };
 
   return (
-    <main
-      className="min-h-screen flex items-center justify-center p-4"
-      style={{ backgroundColor: "lab(2.75381% 0 0)" }}
-    >
+    <main className="bg-blue-100 dark:bg-[lab(2.75381%_0_0)] min-h-screen flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <div className="bg-black dark:bg-black rounded-lg shadow-lg p-8">
-          <h1 className="text-3xl font-bold text-center mb-8 text-white dark:text-white">
+        <div className="bg-sky-100 dark:bg-black rounded-lg shadow-lg p-8">
+          <h1 className="text-3xl font-bold text-center mb-8 text-slate-800 dark:text-white">
             Sign Up
           </h1>
           <div className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-white dark:text-white mb-2">
+              <label className="block text-sm font-medium text-slate-800 dark:text-white mb-2">
                 Email
               </label>
               <Input
@@ -166,7 +163,7 @@ export default function SignUpPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-white dark:text-white mb-2">
+              <label className="block text-sm font-medium text-slate-800 dark:text-white mb-2">
                 Password
               </label>
               <PasswordStrengthMeter
@@ -176,7 +173,7 @@ export default function SignUpPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-white dark:text-white mb-2">
+              <label className="block text-sm font-medium text-slate-800 dark:text-white mb-2">
                 Confirm password
               </label>
               <Input
@@ -188,7 +185,7 @@ export default function SignUpPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-white dark:text-white mb-2">
+              <label className="block text-sm font-medium text-slate-800 dark:text-white mb-2">
                 City
               </label>
               <Select value={city} onValueChange={setCity}>
@@ -207,7 +204,7 @@ export default function SignUpPage() {
               </Select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-white dark:text-white mb-2">
+              <label className="block text-sm font-medium text-slate-800 dark:text-white mb-2">
                 Food Exceptions
               </label>
               <DropdownMenu>
@@ -257,37 +254,37 @@ export default function SignUpPage() {
               </DropdownMenu>
             </div>
             <div className="flex items-center justify-between gap-4">
-              <label className="text-sm font-medium text-white dark:text-white w-24">
+              <label className="text-sm font-medium text-slate-800 dark:text-white w-24">
                 Halal Only?
               </label>
               <Toggle
                 pressed={halal}
                 onPressedChange={setHalal}
-                className="flex-1 h-10 justify-center data-[state=on]:bg-sky-700 data-[state=off]:bg-slate-700 hover:data-[state=off]:bg-slate-600 text-white"
+                className="flex-1 h-10 justify-center data-[state=on]:bg-sky-700 data-[state=off]:bg-slate-700 hover:data-[state=off]:bg-slate-600 text-white hover:text-white"
               >
                 {halal ? "Yes" : "No"}
               </Toggle>
             </div>
             <div className="flex items-center justify-between gap-4">
-              <label className="text-sm font-medium text-white dark:text-white w-24">
+              <label className="text-sm font-medium text-slate-800 dark:text-white w-24">
                 Vegan?
               </label>
               <Toggle
                 pressed={vegan}
                 onPressedChange={setVegan}
-                className="flex-1 h-10 justify-center data-[state=on]:bg-sky-700 data-[state=off]:bg-slate-700 hover:data-[state=off]:bg-slate-600 text-white"
+                className="flex-1 h-10 justify-center data-[state=on]:bg-sky-700 data-[state=off]:bg-slate-700 hover:data-[state=off]:bg-slate-600 text-white hover:text-white"
               >
                 {vegan ? "Yes" : "No"}
               </Toggle>
             </div>
             <div className="flex items-center justify-between gap-4">
-              <label className="text-sm font-medium text-white dark:text-white w-24">
+              <label className="text-sm font-medium text-slate-800 dark:text-white w-24">
                 Vegetarian?
               </label>
               <Toggle
                 pressed={vegetarian}
                 onPressedChange={setVegetarian}
-                className="flex-1 h-10 justify-center data-[state=on]:bg-sky-700 data-[state=off]:bg-slate-700 hover:data-[state=off]:bg-slate-600 text-white"
+                className="flex-1 h-10 justify-center data-[state=on]:bg-sky-700 data-[state=off]:bg-slate-700 hover:data-[state=off]:bg-slate-600 text-white hover:text-white"
               >
                 {vegetarian ? "Yes" : "No"}
               </Toggle>
@@ -308,11 +305,11 @@ export default function SignUpPage() {
               )}
             </Button>
           </div>
-          <p className="text-center text-slate-300 dark:text-slate-300 mt-6">
+          <p className="text-center text-slate-600 dark:text-slate-300 mt-6">
             Already have an account?{" "}
             <Link
               href="/login"
-              className="text-white dark:text-white hover:underline font-medium"
+              className="text-slate-800 dark:text-white hover:underline font-medium"
             >
               Log in
             </Link>

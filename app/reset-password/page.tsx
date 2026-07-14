@@ -72,11 +72,8 @@ export default function ResetPassword() {
 
   if (checking) {
     return (
-      <main
-        className="min-h-screen flex items-center justify-center p-4"
-        style={{ backgroundColor: "lab(2.75381% 0 0)" }}
-      >
-        <div className="w-full max-w-md bg-black dark:bg-black rounded-lg shadow-lg p-8 text-center text-white">
+      <main className="bg-blue-100 dark:bg-[lab(2.75381%_0_0)] min-h-screen flex items-center justify-center p-4">
+        <div className="w-full max-w-md bg-sky-100 dark:bg-black rounded-lg shadow-lg p-8 text-center text-slate-800 dark:text-white">
           <p>Verifying session...</p>
         </div>
       </main>
@@ -86,19 +83,16 @@ export default function ResetPassword() {
   if (!isValidSession) return null; // already redirecting
 
   return (
-    <main
-      className="min-h-screen flex items-center justify-center p-4"
-      style={{ backgroundColor: "lab(2.75381% 0 0)" }}
-    >
+    <main className="bg-blue-100 dark:bg-[lab(2.75381%_0_0)] min-h-screen flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <div className="bg-black dark:bg-black rounded-lg shadow-lg p-8">
-          <h1 className="text-3xl font-bold text-center mb-8 text-white dark:text-white">
+        <div className="bg-sky-100 dark:bg-black rounded-lg shadow-lg p-8">
+          <h1 className="text-3xl font-bold text-center mb-8 text-slate-800 dark:text-white">
             Set New Password
           </h1>
 
           <div className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-white dark:text-white mb-2">
+              <label className="block text-sm font-medium text-slate-800 dark:text-white mb-2">
                 New password
               </label>
               <PasswordStrengthMeter
@@ -109,7 +103,7 @@ export default function ResetPassword() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-white dark:text-white mb-2">
+              <label className="block text-sm font-medium text-slate-800 dark:text-white mb-2">
                 Confirm password
               </label>
               <Input
@@ -122,7 +116,7 @@ export default function ResetPassword() {
             </div>
             <Button
               type="button"
-              variant="outline"
+              variant="blue"
               onClick={() => router.push("/")}
               className="w-full mb-2"
             >

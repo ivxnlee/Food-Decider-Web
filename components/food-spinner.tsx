@@ -1,4 +1,4 @@
-import { useState, useRef, type CSSProperties, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/modal";
@@ -115,28 +115,13 @@ function FoodImage({ item, size }: FoodImageProps) {
       src={item.image_url}
       alt={item.name}
       draggable={false}
-      style={{
-        width: size,
-        height: size,
-        objectFit: "cover",
-        borderRadius: 8,
-        flexShrink: 0,
-      }}
+      className="rounded-lg object-cover shrink-0"
+      style={{ width: size, height: size }}
     />
   ) : (
     <div
-      style={{
-        width: size,
-        height: size,
-        borderRadius: 8,
-        background: "#2a2a2e",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        flexShrink: 0,
-        color: "#777",
-        fontSize: 12,
-      }}
+      className="flex shrink-0 items-center justify-center rounded-lg bg-[#2a2a2e] text-xs text-[#777]"
+      style={{ width: size, height: size }}
     >
       No image
     </div>
@@ -230,104 +215,32 @@ export default function FoodSpinner({
     }, 5600);
   };
 
-  const edgeFadeLeft: CSSProperties = {
-    position: "absolute",
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: 60,
-    background: "linear-gradient(to right, #18181b, transparent)",
-    zIndex: 4,
-  };
-
-  const edgeFadeRight: CSSProperties = {
-    position: "absolute",
-    right: 0,
-    top: 0,
-    bottom: 0,
-    width: 60,
-    background: "linear-gradient(to left, #18181b, transparent)",
-    zIndex: 4,
-  };
-
   return (
-    <div
-      style={{
-        width: "-webkit-fill-available",
-        maxWidth: 680,
-        margin: "0 auto",
-        fontFamily: "sans-serif",
-      }}
-    >
+    <div className="mx-auto w-[-webkit-fill-available] max-w-170 font-sans">
       <div
         ref={wrapperRef}
-        style={{
-          position: "relative",
-          width: "100%",
-          height: 220,
-          overflow: "hidden",
-          background: "#18181b",
-          borderRadius: 12,
-          border: "1px solid #2e2e33",
-        }}
+        className="relative h-55 w-full overflow-hidden rounded-xl border border-slate-300 bg-sky-100 dark:border-black dark:bg-black"
       >
         {/* Center marker */}
-        <div
-          style={{
-            position: "absolute",
-            left: "50%",
-            top: 0,
-            bottom: 0,
-            width: 2,
-            background: "#ffb84d",
-            transform: "translateX(-1px)",
-            zIndex: 5,
-          }}
-        />
+        <div className="absolute top-0 bottom-0 left-1/2 z-5 w-0.5 -translate-x-1/2 bg-red-500 dark:bg-red-800" />
+
         {/* Add Loading indicator before reelItems are fully loaded */}
         {/* Reel */}
         <div
+          className="absolute top-0 left-0 flex h-full will-change-transform"
           style={{
-            display: "flex",
-            position: "absolute",
-            top: 0,
-            left: 0,
-            height: "100%",
             transform: `translateX(${translateX}px)`,
             transition,
-            willChange: "transform",
           }}
         >
           {reelItems.map((item, i) => (
             <div
               key={i}
-              style={{
-                flex: `0 0 ${ITEM_WIDTH}px`,
-                height: 190,
-                margin: "15px 7px",
-                borderRadius: 8,
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 8,
-                background: "#1f1f23",
-                border: "1px solid #2e2e33",
-                overflow: "hidden",
-              }}
+              className="my-3.75 mx-1.75 flex h-47.5 flex-col items-center justify-center gap-2 overflow-hidden rounded-lg border bg-mist-300 dark:border-[#2e2e33] dark:bg-[#1f1f23]"
+              style={{ flex: `0 0 ${ITEM_WIDTH}px` }}
             >
               <FoodImage item={item} size={140} />
-              <span
-                style={{
-                  fontSize: 13,
-                  fontWeight: 500,
-                  textAlign: "center",
-                  padding: "0 8px",
-                  lineHeight: 1.3,
-                  color: "#e8e8ea",
-                  userSelect: "none",
-                }}
-              >
+              <span className="px-2 text-center text-[13px] leading-[1.3] font-medium text-slate-800 dark:text-[#e8e8ea] select-none">
                 {item.name}
               </span>
             </div>
@@ -335,15 +248,15 @@ export default function FoodSpinner({
         </div>
 
         {/* Edge fades */}
-        <div style={edgeFadeLeft} />
-        <div style={edgeFadeRight} />
+        <div className="absolute top-0 bottom-0 left-0 z-4 w-15 bg-linear-to-r from-slate-300 dark:from-black to-transparent" />
+        <div className="absolute top-0 bottom-0 right-0 z-4 w-15 bg-linear-to-l from-slate-300 dark:from-black to-transparent" />
       </div>
 
-      <div style={{ display: "flex", justifyContent: "center", marginTop: 24 }}>
+      <div className="mt-6 flex justify-center">
         <Button
           onClick={spin}
           disabled={spinning || loggedIn === "loading"}
-          className="w-40 h-15 text-3xl"
+          className="h-15 w-40 text-3xl"
         >
           SPIN
         </Button>

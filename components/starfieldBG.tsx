@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef } from "react";
+import { useTheme } from "next-themes";
 
 interface Star {
   x: number;
@@ -17,6 +18,7 @@ interface StarfieldProps {
 
 function StarfieldBackground({ count = 150, speed = 1 }: StarfieldProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const { theme } = useTheme();
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -60,7 +62,8 @@ function StarfieldBackground({ count = 150, speed = 1 }: StarfieldProps) {
 
         ctx.beginPath();
         ctx.arc(s.x, s.y, s.size * depth, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(255,255,255,${Math.min(1, flicker * depth)})`;
+        const color = theme === "dark" ? "255,255,255" : "0,0,0";
+        ctx.fillStyle = `rgba(${color},${Math.min(1, flicker * depth)})`;
         ctx.fill();
 
         s.x -= speed * depth * 0.6;
@@ -92,7 +95,7 @@ function StarfieldBackground({ count = 150, speed = 1 }: StarfieldProps) {
       cancelAnimationFrame(animId);
       resizeTarget.removeEventListener("resize", handleResize);
     };
-  }, [count, speed]);
+  }, [count, speed, theme]);
 
   return (
     <canvas

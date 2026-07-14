@@ -1,4 +1,5 @@
-import { useState, useRef, useCallback, useEffect, useMemo } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
+import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -37,60 +38,6 @@ const SWIPE_THRESHOLD = 100;
 // Degree of rotation applied per pixel of horizontal movement
 const ROTATION_FACTOR = 0.12;
 
-// Hook to track responsive screen size
-function useResponsiveSize() {
-  const [windowWidth, setWindowWidth] = useState(480);
-
-  useEffect(() => {
-    // Set initial width
-    if (typeof window !== "undefined") {
-      setWindowWidth(window.innerWidth);
-    }
-
-    const handleResize = () => {
-      setWindowWidth(window.innerWidth);
-    };
-
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  return useMemo(() => {
-    const isMobile = windowWidth < 640;
-    const isTablet = windowWidth >= 640 && windowWidth < 1024;
-    const isDesktop = windowWidth >= 1024;
-
-    return {
-      isMobile,
-      isTablet,
-      isDesktop,
-      windowWidth,
-      // Card dimensions
-      cardWidth: isMobile
-        ? Math.min(300, windowWidth - 32)
-        : isTablet
-          ? 350
-          : 400,
-      cardHeight: isMobile ? 460 : isTablet ? 520 : 580,
-      // Image dimensions
-      imageSize: isMobile ? 200 : isTablet ? 240 : 280,
-      // Button sizes
-      buttonSize: isMobile ? 44 : 52,
-      // Font sizes
-      statFontSize: isMobile ? 18 : 22,
-      statLabelFontSize: isMobile ? 10 : 12,
-      cardNameFontSize: isMobile ? 16 : 18,
-      cardDescFontSize: isMobile ? 12 : 13,
-      // Spacing
-      padding: isMobile ? "1rem 0.5rem" : "2rem 1rem",
-      gapStats: isMobile ? 24 : 32,
-      gapButtons: isMobile ? 16 : 24,
-      marginBottomStats: isMobile ? "1rem" : "1.5rem",
-      marginTopButtons: isMobile ? "1rem" : "1.5rem",
-    };
-  }, [windowWidth]);
-}
-
 // Default card shown if no cards are provided
 const DEFAULT_CARDS: SwipeCardItem[] = [
   {
@@ -101,130 +48,108 @@ const DEFAULT_CARDS: SwipeCardItem[] = [
   },
 ];
 
-// Color definitions for card backgrounds based on swipe direction
+// Color definitions for card backgrounds based on swipe direction.
+// These are applied imperatively (via el.style) during pointer-drag, so they
+// stay as plain values rather than Tailwind classes — the drag handler needs
+// to paint every frame without waiting on a React re-render.
 const SWIPE_COLORS = {
   like: "#0c3316", // Green for right swipe
+  likelight: "oklch(96.2% 0.044 156.743)", // Green for right swipe (light mode)
   pass: "#330c0c", // Red for left swipe
+  passlight: "oklch(93.6% 0.032 17.717)", // Red for left swipe (light mode)
   default: "#1a1a1a", // Dark background
+  defaultlight: "oklch(96% 0.002 17.2)", // White background for light mode
 };
 
-// Creates styling for "Like" and "Nope" indicator badges that appear when swiping
-// side: "left" for "Nope ✕", "right" for "Like ♥"
-function indicatorStyle(side: "left" | "right"): React.CSSProperties {
-  const base: React.CSSProperties = {
-    position: "absolute",
-    top: 20,
-    fontSize: 14,
-    fontWeight: 500,
-    padding: "6px 14px",
-    borderRadius: 999,
-    opacity: 0,
-    pointerEvents: "none",
-    transition: "opacity 0.05s",
-  };
-  if (side === "right") {
-    return {
-      ...base,
-      right: 20,
-      background: "#eaf3de",
-      color: "#3b6d11",
-      border: "1.5px solid #97c459",
-    };
-  }
-  return {
-    ...base,
-    left: 20,
-    background: "#fcebeb",
-    color: "#a32d2d",
-    border: "1.5px solid #f09595",
-  };
+// Card dimensions, expressed as Tailwind breakpoints instead of JS-computed
+// pixel values. Mirrors the old isMobile/isTablet/isDesktop steps.
+const CARD_SIZE_CLASSES =
+  "w-[min(300px,calc(100vw-2rem))] h-[460px] sm:w-[350px] sm:h-[520px] lg:w-[400px] lg:h-[580px]";
+
+// "Like ♥" / "Nope ✕" indicator badge shown while dragging
+function SwipeIndicator({
+  side,
+  innerRef,
+}: {
+  side: "left" | "right";
+  innerRef: React.RefObject<HTMLDivElement | null>;
+}) {
+  const isRight = side === "right";
+  return (
+    <div
+      ref={innerRef}
+      className={`absolute top-5 ${isRight ? "right-5" : "left-5"} rounded-full border px-3.5 py-1.5 text-sm font-medium opacity-0 pointer-events-none transition-opacity duration-75 ${
+        isRight
+          ? "bg-[#eaf3de] text-[#3b6d11] border-[#97c459]"
+          : "bg-[#fcebeb] text-[#a32d2d] border-[#f09595]"
+      }`}
+    >
+      {isRight ? "Like ♥" : "Nope ✕"}
+    </div>
+  );
+}
+
+// A single liked/remaining/disliked counter in the stats row
+function StatBox({
+  label,
+  value,
+  isLoading,
+}: {
+  label: "liked" | "remaining" | "disliked";
+  value: number;
+  isLoading?: boolean;
+}) {
+  const color =
+    label === "liked"
+      ? "text-[#4caf50]"
+      : label === "disliked"
+        ? "text-[#f44336]"
+        : "text-slate-800 dark:text-white";
+  return (
+    <div className="flex flex-col items-center text-center select-none">
+      {isLoading ? (
+        <Skeleton className="h-8 w-10 rounded bg-slate-700" />
+      ) : (
+        <div className={`text-[18px] sm:text-[22px] font-medium ${color}`}>
+          {value}
+        </div>
+      )}
+      <div className="mt-0.5 text-[10px] sm:text-xs text-slate-800 dark:text-white">
+        {label}
+      </div>
+    </div>
+  );
 }
 
 // Default rendering for card content (food name and description)
 // Can be overridden with custom renderCard prop
-function defaultCardContent(
-  card: SwipeCardItem,
-  imageSize: number,
-  cardNameFontSize: number,
-  cardDescFontSize: number,
-): React.ReactNode {
+function defaultCardContent(card: SwipeCardItem): React.ReactNode {
   const imageUrl = card.image_url || "/placeholder.jpg";
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        gap: 12,
-        width: "100%",
-        height: "100%",
-        padding: "20px 16px",
-      }}
-    >
+    <div className="flex h-full w-full flex-col items-center gap-3 px-4 py-5">
       <img
         src={imageUrl}
         alt={card.name}
         draggable={false}
-        style={{
-          width: imageSize,
-          height: imageSize,
-          borderRadius: 16,
-          objectFit: "cover",
-          flexShrink: 0,
-          boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
-        }}
+        className="w-50 h-50 sm:w-60 sm:h-60 lg:w-70 lg:h-70 shrink-0 rounded-2xl object-cover shadow-md"
       />
-      <div
-        style={{
-          fontSize: cardNameFontSize,
-          fontWeight: 700,
-          color: "#ffffff",
-          textAlign: "center",
-          lineHeight: 1.2,
-          userSelect: "none",
-        }}
-      >
+      <div className="select-none text-center text-base sm:text-lg font-bold leading-tight text-slate-800 dark:text-white">
         {card.name}
       </div>
       {card.cuisine && card.cuisine.length > 0 && (
-        <div
-          style={{
-            display: "flex",
-            gap: 6,
-            flexWrap: "wrap",
-            justifyContent: "center",
-          }}
-        >
+        <div className="flex flex-wrap justify-center gap-1.5">
           {card.cuisine.slice(0, 2).map((c) => (
             <span
               key={c}
-              style={{
-                fontSize: cardDescFontSize - 1,
-                padding: "4px 10px",
-                backgroundColor: "rgba(255, 255, 255, 0.15)",
-                color: "#e0e0e0",
-                borderRadius: 999,
-                fontWeight: 500,
-                userSelect: "none",
-              }}
+              className="rounded-full bg-black/10 dark:bg-white/15 px-2.5 py-1 text-xs font-medium text-slate-600 dark:text-[#e0e0e0] select-none"
             >
               {c}
             </span>
           ))}
         </div>
       )}
-      <div
-        style={{
-          fontSize: cardDescFontSize,
-          color: "#d0d0d0",
-          textAlign: "center",
-          lineHeight: 1.4,
-          overflow: "hidden",
-          display: "-webkit-box",
-          userSelect: "none",
-        }}
-      >
+      <div className="line-clamp-3 select-none text-center text-xs sm:text-[13px] leading-snug text-slate-700 dark:text-[#d0d0d0]">
         {card.desc}
       </div>
     </div>
@@ -250,10 +175,8 @@ export default function SwipeDeck({
   const [liked, setLiked] = useState(0);
   // Count of cards passed by user
   const [disliked, setDisliked] = useState(0);
-  // Track which button is being hovered (if any)
-  const [hoveredButton, setHoveredButton] = useState<string | null>(null);
-  // Get responsive sizing values
-  const sizing = useResponsiveSize();
+  // Reference to the top card's imperative swipe function
+  const topCardSwipeRef = useRef<((isRight: boolean) => void) | null>(null);
 
   // Reset deck when new cards are provided
   useEffect(() => {
@@ -288,17 +211,9 @@ export default function SwipeDeck({
 
   // Trigger swipe animation on top card via button clicks
   // isRight: true for "like", false for "pass"
-  const programmaticSwipe = useCallback(
-    (isRight: boolean) => {
-      if (stack.length === 0) return;
-      const card = stack[stack.length - 1];
-      topCardSwipeRef.current?.(isRight);
-    },
-    [stack],
-  );
-
-  // Reference to the topCardSwipeRef function in TopCardRef component
-  const topCardSwipeRef = useRef<((isRight: boolean) => void) | null>(null);
+  const programmaticSwipe = useCallback((isRight: boolean) => {
+    topCardSwipeRef.current?.(isRight);
+  }, []);
 
   // Undo the last swipe action: restore card to stack and decrement counter
   const undo = useCallback(() => {
@@ -322,114 +237,31 @@ export default function SwipeDeck({
 
   // Determine which render function to use for card content
   const renderCardContent = (card: SwipeCardItem) =>
-    renderCard
-      ? renderCard(card)
-      : defaultCardContent(
-          card,
-          sizing.imageSize,
-          sizing.cardNameFontSize,
-          sizing.cardDescFontSize,
-        );
-
-  const isLoading = isInitialLoading;
+    renderCard ? renderCard(card) : defaultCardContent(card);
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        padding: sizing.padding,
-        fontFamily: "sans-serif",
-        width: "100%",
-      }}
-    >
+    <div className="flex w-full flex-col items-center px-2 py-4 sm:px-4 sm:py-8 font-sans">
       {/* Statistics section: liked count, remaining cards, passed count */}
-      <div
-        style={{
-          display: "flex",
-          gap: sizing.gapStats,
-          marginBottom: sizing.marginBottomStats,
-          flexWrap: sizing.isMobile ? "wrap" : "nowrap",
-        }}
-      >
-        {[
-          ["liked", liked],
-          ["remaining", stack.length],
-          ["disliked", disliked],
-        ].map(([label, val]) => (
-          <div
-            key={label}
-            style={{
-              textAlign: "center",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              userSelect: "none",
-            }}
-          >
-            {isLoading ? (
-              <Skeleton className="h-8 w-10 rounded bg-slate-700" />
-            ) : (
-              <div
-                style={{
-                  fontSize: sizing.statFontSize,
-                  fontWeight: 500,
-                  color:
-                    label === "liked"
-                      ? "#4caf50"
-                      : label === "disliked"
-                        ? "#f44336"
-                        : "#fff",
-                }}
-              >
-                {val}
-              </div>
-            )}
-            <div
-              style={{
-                fontSize: sizing.statLabelFontSize,
-                color: "#fff",
-                marginTop: 2,
-              }}
-            >
-              {label}
-            </div>
-          </div>
-        ))}
+      <div className="mb-4 sm:mb-6 flex flex-wrap sm:flex-nowrap gap-6 sm:gap-8">
+        <StatBox label="liked" value={liked} isLoading={isInitialLoading} />
+        <StatBox
+          label="remaining"
+          value={stack.length}
+          isLoading={isInitialLoading}
+        />
+        <StatBox
+          label="disliked"
+          value={disliked}
+          isLoading={isInitialLoading}
+        />
       </div>
 
       {/* Card deck: renders cards in stack with depth-based positioning and layering */}
-      {stack.length > 0 || isLoading ? (
-        <div
-          style={{
-            position: "relative",
-            width: sizing.cardWidth,
-            height: sizing.cardHeight,
-            margin: "0 auto",
-          }}
-        >
-          {isLoading ? (
-            <div
-              style={{
-                position: "absolute",
-                inset: 0,
-                borderRadius: 24,
-                background: "rgba(255,255,255,0.04)",
-                border: "2px solid rgba(255,255,255,0.08)",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 16,
-                padding: 24,
-                overflow: "hidden",
-              }}
-            >
-              <Skeleton
-                className="h-64 w-full rounded-[24px] bg-slate-800"
-                style={{ maxWidth: sizing.cardWidth - 32 }}
-              />
+      {stack.length > 0 || isInitialLoading ? (
+        <div className={`relative mx-auto ${CARD_SIZE_CLASSES}`}>
+          {isInitialLoading ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 overflow-hidden rounded-3xl bg-white/5 p-6">
+              <Skeleton className="h-64 w-[calc(100%-2rem)] rounded-3xl bg-slate-800" />
               <Skeleton className="h-7 w-3/4 bg-slate-700" />
               <Skeleton className="h-5 w-1/2 bg-slate-700" />
               <Skeleton className="h-5 w-5/6 bg-slate-700" />
@@ -448,88 +280,30 @@ export default function SwipeDeck({
                   onSwipe={handleSwipe}
                   swipeRef={isTop ? topCardSwipeRef : undefined}
                   renderCard={renderCardContent}
-                  cardWidth={sizing.cardWidth}
-                  cardHeight={sizing.cardHeight}
                 />
               );
             })
           )}
         </div>
       ) : (
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 12,
-            height: sizing.cardHeight,
-            width: sizing.cardWidth,
-            color: "#fff",
-            margin: "0 auto",
-          }}
-        >
+        <div className="mx-auto flex h-115 sm:h-130 lg:h-145 w-[min(300px,calc(100vw-2rem))] sm:w-87.5 lg:w-100 flex-col items-center justify-center gap-3 text-white">
           {/* List of liked foods */}
           {liked > 0 && (
-            <div
-              style={{
-                width: "100%",
-                marginBottom: 16,
-                backgroundColor: "rgba(76, 175, 80, 0.1)",
-                borderRadius: 12,
-                border: "1px solid rgba(76, 175, 80, 0.3)",
-                maxHeight: "40%",
-                overflow: "auto",
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 14,
-                  fontWeight: 600,
-                  color: "#4caf50",
-                  marginBottom: 12,
-                  position: "sticky",
-                  top: 0,
-                  backgroundColor: "rgba(76, 175, 80, 0.1)",
-                  height: 30,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
+            <div className="mb-4 max-h-[40%] w-full overflow-auto rounded-xl border border-emerald-900 bg-emerald-950/90 dark:border-emerald-500/30 dark:bg-emerald-500/10">
+              <div className="sticky top-0 flex h-7.5 items-center justify-center bg-emerald-950 text-sm font-semibold text-[#4caf50]">
                 Liked Foods ({liked})
               </div>
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 8,
-                  padding: "16px",
-                  paddingTop: 0,
-                }}
-              >
+              <div className="flex flex-col gap-2 p-4 pt-0">
                 {history
                   .filter((entry) => entry.dir === "like")
                   .map((entry, idx) => (
                     <div
                       key={`${entry.card.id}-${idx}`}
-                      style={{
-                        padding: "8px 12px",
-                        backgroundColor: "rgba(255, 255, 255, 0.1)",
-                        borderRadius: 8,
-                        fontSize: 14,
-                        color: "#e0e0e0",
-                      }}
+                      className="rounded-lg bg-white/10 px-3 py-2 text-sm text-[#e0e0e0]"
                     >
-                      <div style={{ fontWeight: 600 }}>{entry.card.name}</div>
+                      <div className="font-semibold">{entry.card.name}</div>
                       {entry.card.cuisine && entry.card.cuisine.length > 0 && (
-                        <div
-                          style={{
-                            fontSize: 12,
-                            color: "#b0b0b0",
-                            marginTop: 4,
-                          }}
-                        >
+                        <div className="mt-1 text-xs text-[#b0b0b0]">
                           {entry.card.cuisine.join(", ")}
                         </div>
                       )}
@@ -540,28 +314,20 @@ export default function SwipeDeck({
           )}
           {history.length > 0 && (
             <>
-              <div style={{ fontSize: 28, textWrap: "nowrap" }}>
+              <div className="text-2xl whitespace-nowrap text-slate-800 dark:text-white">
                 {liked > 2 ? "Complete!" : "Minimum of 3 likes required!"}
               </div>
               <Button
                 onClick={restart}
-                onMouseEnter={() => setHoveredButton("restart")}
-                onMouseLeave={() => setHoveredButton(null)}
-                className="w-50 h-15 text-lg font-bold"
-                style={{
-                  padding: "10px 24px",
-                }}
+                className="h-15 w-50 text-lg font-bold px-6 py-2.5"
               >
                 Start Over
               </Button>
               {liked > 2 && (
                 <Button
                   variant="green"
-                  className="w-50 h-15 text-lg font-bold"
+                  className="h-15 w-50 text-lg font-bold px-6 py-2.5"
                   onClick={() => handleSubmit(history)}
-                  style={{
-                    padding: "10px 24px",
-                  }}
                 >
                   Continue
                 </Button>
@@ -574,88 +340,39 @@ export default function SwipeDeck({
       {/* Control buttons: Pass, Undo, Like */}
       {/* Buttons are disabled when no cards remain in deck */}
       <div
-        style={{
-          display: "flex",
-          gap: sizing.gapButtons,
-          marginTop: sizing.marginTopButtons,
-          opacity: stack.length === 0 || isLoading ? 0.3 : 1,
-          pointerEvents: stack.length === 0 || isLoading ? "none" : "auto",
-          flexWrap: sizing.isMobile ? "wrap" : "nowrap",
-          justifyContent: "center",
-        }}
+        className={`mt-4 sm:mt-6 flex flex-wrap sm:flex-nowrap justify-center gap-4 sm:gap-6 ${
+          stack.length === 0 || isInitialLoading
+            ? "pointer-events-none opacity-30"
+            : "opacity-100"
+        }`}
       >
         {/* Pass button: swipe left */}
         <Button
           onClick={() => programmaticSwipe(false)}
-          onMouseEnter={() => setHoveredButton("pass")}
-          onMouseLeave={() => setHoveredButton(null)}
           size="icon"
           variant="ghost"
-          style={{
-            width: sizing.buttonSize,
-            height: sizing.buttonSize,
-            borderRadius: sizing.buttonSize / 2,
-            background:
-              hoveredButton === "pass"
-                ? "rgba(255, 0, 0, 0.35)"
-                : "rgba(255, 0, 0, 0.15)",
-            fontSize: sizing.isMobile ? 18 : 22,
-            boxShadow:
-              hoveredButton === "pass"
-                ? "0 4px 12px rgba(0, 0, 0, 0.2)"
-                : "0 2px 8px rgba(0, 0, 0, 0.12)",
-          }}
           title="Pass"
+          className="h-11 w-11 sm:h-13 sm:w-13 rounded-full bg-red-500/15 text-lg sm:text-xl shadow-[0_2px_8px_rgba(0,0,0,0.12)] hover:bg-red-500/35 hover:shadow-[0_4px_12px_rgba(0,0,0,0.2)]"
         >
           ✕
         </Button>
         {/* Undo button: undo last swipe */}
         <Button
           onClick={undo}
-          onMouseEnter={() => setHoveredButton("undo")}
-          onMouseLeave={() => setHoveredButton(null)}
           size="icon"
           variant="ghost"
-          style={{
-            width: sizing.buttonSize,
-            height: sizing.buttonSize,
-            borderRadius: sizing.buttonSize / 2,
-            background:
-              hoveredButton === "undo"
-                ? "rgba(255, 255, 255, 0.25)"
-                : "rgba(255, 255, 255, 0.15)",
-            fontSize: sizing.isMobile ? 18 : 22,
-            boxShadow:
-              hoveredButton === "undo"
-                ? "0 4px 12px rgba(0, 0, 0, 0.2)"
-                : "0 2px 8px rgba(0, 0, 0, 0.12)",
-          }}
           title="Undo"
+          className="h-11 w-11 sm:h-13 sm:w-13 rounded-full bg-white/15 text-lg sm:text-xl shadow-[0_2px_8px_rgba(0,0,0,0.12)] hover:bg-white/25 hover:shadow-[0_4px_12px_rgba(0,0,0,0.2)]"
         >
           ↩
         </Button>
         {/* Like button: swipe right */}
         <Button
           onClick={() => programmaticSwipe(true)}
-          onMouseEnter={() => setHoveredButton("like")}
-          onMouseLeave={() => setHoveredButton(null)}
           size="icon"
           variant="ghost"
-          style={{
-            width: sizing.buttonSize,
-            height: sizing.buttonSize,
-            borderRadius: sizing.buttonSize / 2,
-            background:
-              hoveredButton === "like"
-                ? "rgba(0, 255, 0, 0.35)"
-                : "rgba(0, 255, 0, 0.15)",
-            fontSize: sizing.isMobile ? 18 : 22,
-            boxShadow:
-              hoveredButton === "like"
-                ? "0 4px 12px rgba(0, 0, 0, 0.2)"
-                : "0 2px 8px rgba(0, 0, 0, 0.12)",
-          }}
           title="Like"
+          className="h-11 w-11 sm:h-13 sm:w-13 rounded-full bg-green-500/15 text-lg sm:text-xl shadow-[0_2px_8px_rgba(0,0,0,0.12)] hover:bg-green-500/35 hover:shadow-[0_4px_12px_rgba(0,0,0,0.2)]"
         >
           ♥
         </Button>
@@ -674,8 +391,6 @@ function TopCardRef({
   onSwipe,
   swipeRef,
   renderCard,
-  cardWidth,
-  cardHeight,
 }: {
   card: SwipeCardItem;
   depth: number;
@@ -683,9 +398,8 @@ function TopCardRef({
   onSwipe: (card: SwipeCardItem, dir: Direction) => void;
   swipeRef?: React.MutableRefObject<((isRight: boolean) => void) | null>;
   renderCard?: (card: SwipeCardItem) => React.ReactNode;
-  cardWidth: number;
-  cardHeight: number;
 }) {
+  const { theme } = useTheme();
   // DOM reference to the card element
   const cardRef = useRef<HTMLDivElement>(null);
   // Track if user is currently dragging
@@ -711,8 +425,20 @@ function TopCardRef({
     (isRight: boolean) => {
       const el = cardRef.current;
       if (!el) return;
-      // Calculate exit distance based on card width for responsive behavior
-      const exitDistance = cardWidth + 200;
+      // Calculate exit distance based on the card's actual rendered width,
+      // so it stays correct across every breakpoint without needing the
+      // width passed down as a prop.
+      const exitDistance = el.getBoundingClientRect().width + 200;
+      // Apply the like/pass background color — during a drag this is already
+      // set frame-by-frame in onPointerMove, but a button-triggered swipe
+      // skips straight to flyOut, so it needs to be set here too.
+      el.style.backgroundColor = isRight
+        ? theme === "dark"
+          ? SWIPE_COLORS.like
+          : SWIPE_COLORS.likelight
+        : theme === "dark"
+          ? SWIPE_COLORS.pass
+          : SWIPE_COLORS.passlight;
       // Apply exit animation
       el.style.transition = "transform 0.35s ease-in, opacity 0.35s ease-in";
       el.style.transform = `translate(${isRight ? exitDistance : -exitDistance}px, -60px) rotate(${isRight ? 30 : -30}deg)`;
@@ -720,7 +446,7 @@ function TopCardRef({
       // Trigger callback after animation completes
       setTimeout(() => onSwipe(card, isRight ? "like" : "pass"), 350);
     },
-    [card, onSwipe, cardWidth],
+    [card, onSwipe],
   );
 
   // Expose flyOut function to parent component via ref
@@ -750,7 +476,13 @@ function TopCardRef({
     el.style.transform = `translate(${curX.current}px, ${curY.current}px) rotate(${curX.current * ROTATION_FACTOR}deg)`;
     // Apply background color based on swipe direction
     el.style.backgroundColor =
-      curX.current > 0 ? SWIPE_COLORS.like : SWIPE_COLORS.pass;
+      curX.current > 0
+        ? theme === "dark"
+          ? SWIPE_COLORS.like
+          : SWIPE_COLORS.likelight
+        : theme === "dark"
+          ? SWIPE_COLORS.pass
+          : SWIPE_COLORS.passlight;
     // Calculate indicator opacity based on distance (max at SWIPE_THRESHOLD)
     const ratio = Math.min(Math.abs(curX.current) / SWIPE_THRESHOLD, 1);
     // Show "Like" indicator when dragging right
@@ -779,7 +511,8 @@ function TopCardRef({
         el.style.transition =
           "transform 0.4s cubic-bezier(0.175,0.885,0.32,1.275)";
         el.style.transform = "translate(0,0) rotate(0deg)";
-        el.style.backgroundColor = SWIPE_COLORS.default;
+        el.style.backgroundColor =
+          theme === "dark" ? SWIPE_COLORS.default : SWIPE_COLORS.defaultlight;
       }
     }
   };
@@ -791,42 +524,26 @@ function TopCardRef({
       onPointerDown={isTop ? onPointerDown : undefined}
       onPointerMove={isTop ? onPointerMove : undefined}
       onPointerUp={isTop ? onPointerUp : undefined}
+      // background-color is set imperatively during drag (see above), so it's
+      // left out of the className and applied once via inline style here.
       style={{
-        position: "absolute",
-        inset: 0,
-        borderRadius: 24,
-        border: "2px solid white",
-        background: SWIPE_COLORS.default,
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 0,
-        // Only top card is draggable
-        cursor: isTop ? "grab" : "default",
-        touchAction: "none",
-        willChange: "transform",
-        // Top card visible on top, other cards layered behind
-        zIndex: isTop ? 10 : 10 - depth,
-        // Apply depth transform: scale and vertical offset
+        backgroundColor:
+          theme === "dark" ? SWIPE_COLORS.default : SWIPE_COLORS.defaultlight,
         transform: `translateY(${yOff}px) scale(${scale})`,
-        // Only animate non-top cards (e.g., when top card is removed)
-        transition: isTop ? "none" : "transform 0.3s ease",
-        userSelect: "none",
-        boxShadow: isTop
-          ? "0 10px 40px rgba(0, 0, 0, 0.15)"
-          : "0 5px 20px rgba(0, 0, 0, 0.08)",
-        overflow: "hidden",
+        zIndex: isTop ? 10 : 10 - depth,
+        // touch-action must stay inline — required for pointer-drag to work
+        // reliably on touch devices, and it's not something className can set.
+        touchAction: "none",
       }}
+      className={`absolute inset-0 flex flex-col items-center justify-center overflow-hidden rounded-3xl select-none ${
+        isTop
+          ? "cursor-grab shadow-[0_10px_40px_rgba(0,0,0,0.15)]"
+          : "cursor-default shadow-[0_5px_20px_rgba(0,0,0,0.08)] transition-transform duration-300"
+      }`}
     >
-      {/* "Like ♥" indicator - appears on right swipe */}
-      <div ref={likeRef} style={indicatorStyle("right")}>
-        Like ♥
-      </div>
-      {/* "Nope ✕" indicator - appears on left swipe */}
-      <div ref={nopeRef} style={indicatorStyle("left")}>
-        Nope ✕
-      </div>
+      {/* "Like ♥" / "Nope ✕" indicators - appears while dragging */}
+      <SwipeIndicator side="right" innerRef={likeRef} />
+      <SwipeIndicator side="left" innerRef={nopeRef} />
       {/* Card content: rendered via the renderCard function (pre-configured in SwipeDeck) */}
       {renderCard && renderCard(card)}
     </div>

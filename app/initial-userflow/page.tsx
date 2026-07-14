@@ -97,21 +97,31 @@ export default function InitialUserflowPage() {
       .map((entry) => entry.card.id);
     if (tempLikedFoods.length > 2) {
       setLikedFoods(tempLikedFoods);
-      setSection(2);
+      if (!initialUserflow) {
+        handleCompleteIntUserflow(tempLikedFoods);
+      } else {
+        setSection(2);
+      }
     } else {
       console.error("Please like at least 3 foods to proceed.");
     }
   };
 
-  const handleCompleteIntUserflow = async () => {
+  const handleCompleteIntUserflow = async (foods: number[]) => {
     setSubmitLoading(true);
+
+    const updatePayload: Record<string, unknown> = {
+      favourite_foods: foods,
+    };
+
+    if (initialUserflow) {
+      updatePayload.initial_userflow = false;
+      updatePayload.suggest_again_days = suggestAgainAfterDays;
+    }
+
     const { data, error } = await supabase
       .from("account_settings")
-      .update({
-        favourite_foods: likedFoods,
-        initial_userflow: false,
-        suggest_again_days: suggestAgainAfterDays,
-      })
+      .update(updatePayload)
       .eq("id", userID)
       .select();
 
@@ -141,26 +151,23 @@ export default function InitialUserflowPage() {
   };
 
   return (
-    <main
-      className="min-h-screen flex items-center justify-center p-4 overflow-hidden"
-      style={{ backgroundColor: "lab(2.75381% 0 0)" }}
-    >
+    <main className="bg-blue-100 dark:bg-[lab(2.75381%_0_0)] min-h-screen flex items-center justify-center p-4 overflow-hidden">
       <div className="w-full min-h-[calc(100vh-2rem)] max-w-4xl">
-        <div className="min-h-[calc(100vh-2rem)] bg-black rounded-3xl shadow-lg shadow-black/40 p-8">
+        <div className="min-h-[calc(100vh-2rem)] bg-sky-100 dark:bg-black rounded-3xl shadow-lg shadow-black/40 p-8">
           <div className="flex items-start justify-between gap-4 mb-8 select-none">
             {section === 1 ? (
               <header>
-                <h1 className="text-3xl font-semibold text-white">
+                <h1 className="text-3xl font-semibold text-slate-800 dark:text-white">
                   Choose your favourites
                 </h1>
-                <p className="mt-2 text-sm text-slate-300 max-w-2xl">
+                <p className="mt-2 text-sm text-slate-600 dark:text-slate-300 max-w-2xl">
                   Swipe through the suggestions to build your personalized
                   experience.
                 </p>
               </header>
             ) : (
               <header>
-                <h1 className="text-3xl font-semibold text-white">
+                <h1 className="text-3xl font-semibold text-slate-800 dark:text-white">
                   Finalize your preferences
                 </h1>
               </header>
@@ -170,8 +177,8 @@ export default function InitialUserflowPage() {
               {!initialUserflow && (
                 <Button
                   type="button"
-                  variant="secondary"
-                  size="lg"
+                  variant="blue"
+                  size="xlg"
                   onClick={handleBackToHome}
                 >
                   Back
@@ -180,7 +187,7 @@ export default function InitialUserflowPage() {
               <Button
                 type="button"
                 variant="destructive"
-                size="lg"
+                size="xlg"
                 onClick={handleLogout}
                 disabled={isLoggingOut}
               >
@@ -199,22 +206,22 @@ export default function InitialUserflowPage() {
             {section === 2 && (
               <div className="w-full space-y-6">
                 <div>
-                  <h2 className="text-2xl font-semibold text-white">
+                  <h2 className="text-2xl font-semibold text-slate-800 dark:text-white">
                     Suggest again frequency
                   </h2>
-                  <p className="mt-2 text-sm text-slate-300 max-w-2xl">
+                  <p className="mt-2 text-sm text-slate-600 dark:text-slate-300 max-w-2xl">
                     Choose how many days should pass before we suggest the same
                     food again.
                   </p>
                 </div>
-                <label className="flex w-full flex-col gap-2 text-sm text-slate-200">
+                <label className="flex w-full flex-col gap-2 text-sm text-slate-500 dark:text-slate-200">
                   <span>Suggest again after</span>
                   <select
                     value={suggestAgainAfterDays}
                     onChange={(event) =>
                       setSuggestAgainAfterDays(Number(event.target.value))
                     }
-                    className="w-full rounded-2xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none transition-colors focus:border-slate-500"
+                    className="w-full rounded-2xl border border-blue-50 bg-blue-200 dark:border-slate-700 dark:bg-slate-950 px-4 py-3 text-slate-800 dark:text-white outline-none transition-colors focus:border-slate-500"
                   >
                     {[3, 4, 5, 6, 7].map((days) => (
                       <option key={days} value={days}>
@@ -227,7 +234,7 @@ export default function InitialUserflowPage() {
                   type="button"
                   variant="green"
                   className="w-full h-15 text-lg font-bold"
-                  onClick={() => handleCompleteIntUserflow()}
+                  onClick={() => handleCompleteIntUserflow(likedFoods)}
                   style={{
                     padding: "10px 24px",
                   }}
