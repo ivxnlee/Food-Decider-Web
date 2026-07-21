@@ -16,6 +16,7 @@ import {
 } from "@hugeicons/core-free-icons";
 import { SettingsModal } from "@/components/settings-modal";
 import { LikesModal } from "@/components/likes-modal";
+import { useAnonLockStore } from "./stores/anonLockStore";
 
 interface FoodData {
   id: number;
@@ -44,7 +45,7 @@ export default function DashboardPage() {
   const [mappedFoods, setMappedFoods] = useState<FoodItem[]>([]);
   const [mounted, setMounted] = useState<boolean>(false);
   const [suggestAgainDays, setSuggestAgainDays] = useState<number>(4);
-  const [city, setCity] = useState<string>("");
+  const [country, setCountry] = useState<string>("");
   const [dietaryRestrictions, setDietaryRestrictions] = useState<string[]>([]);
   const [halal, setHalal] = useState<boolean>(false);
   const [vegan, setVegan] = useState<boolean>(false);
@@ -66,6 +67,10 @@ export default function DashboardPage() {
   const [secondsLeft, setSecondsLeft] = useState(0);
   const COOLDOWN_SECONDS = 120; // 2 minutes
   const STORAGE_KEY = "suggestion_cooldown_until";
+
+  // Zustand store for anonymous users
+  const { country: anonCountry, setCountry: setAnonCountry } =
+    useAnonLockStore();
 
   useEffect(() => {
     setMounted(true);
@@ -178,6 +183,11 @@ export default function DashboardPage() {
     setSecondsLeft(COOLDOWN_SECONDS);
   }, []);
 
+  function getCountryCookie(): string {
+    const match = document.cookie.match(/(?:^|;\s*)user-country=([^;]*)/);
+    return match ? decodeURIComponent(match[1]) : "Others";
+  }
+
   const fetchProfile = async () => {
     const {
       data: { session },
@@ -185,72 +195,73 @@ export default function DashboardPage() {
 
     if (!session?.user) {
       setInitStatus("logged out");
+      console.log("User Country (from cookie):", getCountryCookie());
       return;
-    }
-
-    setInitStatus("logged in");
-    setUserID(session.user.id);
-
-    const { data: profile } = await supabase
-      .from("account_settings")
-      .select(
-        "theme, city, dietary_restrictions, halal, vegan, vegetarian, favourite_foods, initial_userflow, suggest_again_days",
-      )
-      .eq("id", session.user.id)
-      .single();
-
-    const profileCity = profile?.city ?? "";
-    const profileDietaryRestrictions = profile?.dietary_restrictions ?? [];
-    const profileHalal = Boolean(profile?.halal);
-    const profileVegan = Boolean(profile?.vegan);
-    const profileVegetarian = Boolean(profile?.vegetarian);
-
-    setCity(profileCity);
-    setDietaryRestrictions(profileDietaryRestrictions);
-    setHalal(profileHalal);
-    setVegan(profileVegan);
-    setVegetarian(profileVegetarian);
-
-    if (profile?.theme && profile.theme !== theme) {
-      isSyncingThemeFromServer.current = true;
-      setTheme(profile.theme);
-    }
-
-    if (profile?.initial_userflow === true) {
-      router.push("/initial-userflow");
-      return;
-    }
-
-    const favouriteFoodIds = profile?.favourite_foods ?? [];
-    setSuggestAgainDays(profile?.suggest_again_days ?? 4);
-    setFavouriteFoods(favouriteFoodIds);
-
-    if (favouriteFoodIds.length > 0) {
-      await getAvailableFavouriteFoods(favouriteFoodIds);
-      await fetchSuggestedFoods(
-        favouriteFoodIds,
-        profileCity,
-        profileHalal,
-        profileVegan,
-        profileVegetarian,
-      );
     } else {
-      setFavouriteFoodEntries([]);
-      setLockedFoods([]);
-      setMappedFoods([]);
-      await fetchSuggestedFoods(
-        [],
-        profileCity,
-        profileHalal,
-        profileVegan,
-        profileVegetarian,
-      );
+      setInitStatus("logged in");
+      setUserID(session.user.id);
+
+      const { data: profile } = await supabase
+        .from("account_settings")
+        .select(
+          "theme, country, dietary_restrictions, halal, vegan, vegetarian, favourite_foods, initial_userflow, suggest_again_days",
+        )
+        .eq("id", session.user.id)
+        .single();
+
+      const profileCountry = profile?.country ?? "";
+      const profileDietaryRestrictions = profile?.dietary_restrictions ?? [];
+      const profileHalal = Boolean(profile?.halal);
+      const profileVegan = Boolean(profile?.vegan);
+      const profileVegetarian = Boolean(profile?.vegetarian);
+
+      setCountry(profileCountry);
+      setDietaryRestrictions(profileDietaryRestrictions);
+      setHalal(profileHalal);
+      setVegan(profileVegan);
+      setVegetarian(profileVegetarian);
+
+      if (profile?.theme && profile.theme !== theme) {
+        isSyncingThemeFromServer.current = true;
+        setTheme(profile.theme);
+      }
+
+      if (profile?.initial_userflow === true) {
+        router.push("/initial-userflow");
+        return;
+      }
+
+      const favouriteFoodIds = profile?.favourite_foods ?? [];
+      setSuggestAgainDays(profile?.suggest_again_days ?? 4);
+      setFavouriteFoods(favouriteFoodIds);
+
+      if (favouriteFoodIds.length > 0) {
+        await getAvailableFavouriteFoods(favouriteFoodIds);
+        await fetchSuggestedFoods(
+          favouriteFoodIds,
+          profileCountry,
+          profileHalal,
+          profileVegan,
+          profileVegetarian,
+        );
+      } else {
+        setFavouriteFoodEntries([]);
+        setLockedFoods([]);
+        setMappedFoods([]);
+        await fetchSuggestedFoods(
+          [],
+          profileCountry,
+          profileHalal,
+          profileVegan,
+          profileVegetarian,
+        );
+      }
     }
   };
 
   const fetchSuggestedFoods = async (
     currentFavouriteIds: number[] = [],
-    profileCity = city,
+    profileCountry = country,
     profileHalal = halal,
     profileVegan = vegan,
     profileVegetarian = vegetarian,
@@ -260,8 +271,8 @@ export default function DashboardPage() {
       .select("id, name, desc, cuisine, image_url")
       .limit(10);
 
-    if (profileCity) {
-      query = query.contains("city", [profileCity]);
+    if (profileCountry) {
+      query = query.contains("country", [profileCountry]);
     }
     if (profileHalal) {
       query = query.eq("halal", true);
@@ -390,7 +401,7 @@ export default function DashboardPage() {
     await getAvailableFavouriteFoods(updatedFavouriteFoods);
     await fetchSuggestedFoods(
       updatedFavouriteFoods,
-      city,
+      country,
       halal,
       vegan,
       vegetarian,
@@ -422,7 +433,7 @@ export default function DashboardPage() {
     await getAvailableFavouriteFoods(updatedFavouriteFoods);
     await fetchSuggestedFoods(
       updatedFavouriteFoods,
-      city,
+      country,
       halal,
       vegan,
       vegetarian,
@@ -473,7 +484,7 @@ export default function DashboardPage() {
   };
 
   const handleSavePreferences = async (preferences: {
-    city: string;
+    country: string;
     dietaryRestrictions: string[];
     halal: boolean;
     vegan: boolean;
@@ -484,7 +495,7 @@ export default function DashboardPage() {
     const { data, error } = await supabase
       .from("account_settings")
       .update({
-        city: preferences.city,
+        country: preferences.country,
         dietary_restrictions: preferences.dietaryRestrictions,
         halal: preferences.halal,
         vegan: preferences.vegan,
@@ -497,7 +508,7 @@ export default function DashboardPage() {
     if (error) {
       console.error("Error updating preferences:", error);
     } else {
-      setCity(preferences.city);
+      setCountry(preferences.country);
       setDietaryRestrictions(preferences.dietaryRestrictions);
       setHalal(preferences.halal);
       setVegan(preferences.vegan);
@@ -751,7 +762,7 @@ export default function DashboardPage() {
         onSavePreferences={handleSavePreferences}
         onReselectFavourites={reselectFavourites}
         onDeleteAccount={onDeleteAccount}
-        initialCity={city}
+        initialCountry={country}
         initialDietaryRestrictions={dietaryRestrictions}
         initialHalal={halal}
         initialVegan={vegan}

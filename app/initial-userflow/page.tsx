@@ -32,7 +32,7 @@ export default function InitialUserflowPage() {
     const { data: profile } = await supabase
       .from("account_settings")
       .select(
-        "theme, city, dietary_restrictions, halal, vegan, vegetarian, initial_userflow",
+        "theme, country, dietary_restrictions, halal, vegan, vegetarian, initial_userflow",
       )
       .eq("id", user!.id)
       .single();
@@ -42,7 +42,7 @@ export default function InitialUserflowPage() {
     let query = supabase
       .from("foods")
       .select("id, name, cuisine, desc, image_url")
-      .contains("city", [profile?.city]);
+      .contains("country", [profile?.country]);
 
     if (profile?.halal) {
       query = query.eq("halal", true);

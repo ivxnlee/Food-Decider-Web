@@ -34,7 +34,7 @@ export default function SignUpPage() {
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [confirm, setConfirm] = useState<string>("");
-  const [city, setCity] = useState<string>("");
+  const [country, setCountry] = useState<string>("");
   const [dietaryRestrictions, setDietaryRestrictions] = useState<string[]>([]);
   const [halal, setHalal] = useState<boolean>(false);
   const [vegan, setVegan] = useState<boolean>(false);
@@ -54,8 +54,8 @@ export default function SignUpPage() {
       requirement.validator(password),
     );
 
-    setSubmitDisabled(!isPasswordValid || !isValidEmail(email) || !city);
-  }, [password, email, city]);
+    setSubmitDisabled(!isPasswordValid || !isValidEmail(email) || !country);
+  }, [password, email, country]);
 
   const allergyOptions = [
     "Shellfish",
@@ -103,8 +103,8 @@ export default function SignUpPage() {
       return;
     }
 
-    if (!city) {
-      console.error("City is required");
+    if (!country) {
+      console.error("Country is required");
       return;
     }
 
@@ -114,7 +114,7 @@ export default function SignUpPage() {
       password: password,
       options: {
         data: {
-          city: city,
+          country: country,
           dietary_restrictions: dietaryRestrictions,
           halal: halal,
           vegan: vegan,
@@ -186,20 +186,28 @@ export default function SignUpPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-800 dark:text-white mb-2">
-                City
+                Country
               </label>
-              <Select value={city} onValueChange={setCity}>
+              <Select value={country} onValueChange={setCountry}>
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select a city" />
+                  <SelectValue placeholder="Select a country" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Singapore">Singapore</SelectItem>
-                  <SelectItem value="Kuala Lumpur">Kuala Lumpur</SelectItem>
-                  <SelectItem value="Bangkok">Bangkok</SelectItem>
-                  <SelectItem value="Tokyo">Tokyo</SelectItem>
-                  <SelectItem value="Seoul">Seoul</SelectItem>
-                  <SelectItem value="Hong Kong">Hong Kong</SelectItem>
+                  <SelectItem value="Malaysia">Malaysia</SelectItem>
                   <SelectItem value="Others">Others</SelectItem>
+                  <SelectItem value="Thailand" disabled>
+                    Thailand
+                  </SelectItem>
+                  <SelectItem value="Japan" disabled>
+                    Japan
+                  </SelectItem>
+                  <SelectItem value="South Korea" disabled>
+                    South Korea
+                  </SelectItem>
+                  <SelectItem value="Hong Kong" disabled>
+                    Hong Kong
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>

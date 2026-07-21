@@ -18,7 +18,7 @@ interface StarfieldProps {
 
 function StarfieldBackground({ count = 150, speed = 1 }: StarfieldProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { theme } = useTheme();
+  const { resolvedTheme } = useTheme();
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -26,6 +26,11 @@ function StarfieldBackground({ count = 150, speed = 1 }: StarfieldProps) {
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
+
+    if (resolvedTheme !== "dark") {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      return; // Only render the starfield in dark mode
+    }
 
     let animId: number;
     let stars: Star[] = [];
@@ -62,7 +67,7 @@ function StarfieldBackground({ count = 150, speed = 1 }: StarfieldProps) {
 
         ctx.beginPath();
         ctx.arc(s.x, s.y, s.size * depth, 0, Math.PI * 2);
-        const color = theme === "dark" ? "255,255,255" : "0,0,0";
+        const color = "255,255,255";
         ctx.fillStyle = `rgba(${color},${Math.min(1, flicker * depth)})`;
         ctx.fill();
 
@@ -95,7 +100,7 @@ function StarfieldBackground({ count = 150, speed = 1 }: StarfieldProps) {
       cancelAnimationFrame(animId);
       resizeTarget.removeEventListener("resize", handleResize);
     };
-  }, [count, speed, theme]);
+  }, [count, speed, resolvedTheme]);
 
   return (
     <canvas

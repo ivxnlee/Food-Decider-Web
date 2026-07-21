@@ -27,13 +27,13 @@ interface SettingsModalProps {
   onDeleteAccount?: () => void;
   onSuggestAgainDaysChange?: (days: number) => void;
   onSavePreferences?: (preferences: {
-    city: string;
+    country: string;
     dietaryRestrictions: string[];
     halal: boolean;
     vegan: boolean;
     vegetarian: boolean;
   }) => void;
-  initialCity?: string;
+  initialCountry?: string;
   initialDietaryRestrictions?: string[];
   initialHalal?: boolean;
   initialVegan?: boolean;
@@ -48,7 +48,7 @@ export function SettingsModal({
   onDeleteAccount,
   onSuggestAgainDaysChange,
   onSavePreferences,
-  initialCity = "",
+  initialCountry = "",
   initialDietaryRestrictions = [],
   initialHalal = false,
   initialVegan = false,
@@ -60,7 +60,7 @@ export function SettingsModal({
   const [cooldown, setCooldown] = useState<number>(0);
   const [section, setSection] = useState<string>("main");
   const [deleteConfirmed, setDeleteConfirmed] = useState<boolean>(false);
-  const [city, setCity] = useState<string>(initialCity);
+  const [country, setCountry] = useState<string>(initialCountry);
   const [dietaryRestrictions, setDietaryRestrictions] = useState<string[]>(
     initialDietaryRestrictions,
   );
@@ -71,7 +71,7 @@ export function SettingsModal({
   useEffect(() => {
     if (!open) return;
 
-    setCity(initialCity);
+    setCountry(initialCountry);
     setDietaryRestrictions(initialDietaryRestrictions);
     setHalal(initialHalal);
     setVegan(initialVegan);
@@ -79,7 +79,7 @@ export function SettingsModal({
     setTempSuggestAgainAfterDays(initialSuggestAgainDays);
   }, [
     open,
-    initialCity,
+    initialCountry,
     initialDietaryRestrictions,
     initialHalal,
     initialVegan,
@@ -129,7 +129,7 @@ export function SettingsModal({
 
   const handleSavePreferences = () => {
     onSavePreferences?.({
-      city,
+      country,
       dietaryRestrictions,
       halal,
       vegan,
@@ -232,7 +232,7 @@ export function SettingsModal({
                   Permanent account changes
                 </h3>
                 <p className="mt-1 text-sm text-slate-400">
-                  Update your city, re-select favourite foods, or delete your
+                  Update your country, re-select favourite foods, or delete your
                   account.
                 </p>
               </div>
@@ -244,7 +244,7 @@ export function SettingsModal({
                   className="w-full justify-center"
                   onClick={() => setSection("change-pref")}
                 >
-                  Change city / Dietary preferences
+                  Change country / Dietary preferences
                 </Button>
                 <Button
                   type="button"
@@ -289,20 +289,28 @@ export function SettingsModal({
             <div className="space-y-5 rounded-3xl border border-white/10 bg-slate-950/80 p-6">
               <div>
                 <label className="block text-sm font-medium text-white mb-2">
-                  City
+                  Country
                 </label>
-                <Select value={city} onValueChange={setCity}>
+                <Select value={country} onValueChange={setCountry}>
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select a city" />
+                    <SelectValue placeholder="Select a country" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Singapore">Singapore</SelectItem>
-                    <SelectItem value="Kuala Lumpur">Kuala Lumpur</SelectItem>
-                    <SelectItem value="Bangkok">Bangkok</SelectItem>
-                    <SelectItem value="Tokyo">Tokyo</SelectItem>
-                    <SelectItem value="Seoul">Seoul</SelectItem>
-                    <SelectItem value="Hong Kong">Hong Kong</SelectItem>
+                    <SelectItem value="Malaysia">Malaysia</SelectItem>
                     <SelectItem value="Others">Others</SelectItem>
+                    <SelectItem value="Thailand" disabled>
+                      Thailand
+                    </SelectItem>
+                    <SelectItem value="Japan" disabled>
+                      Japan
+                    </SelectItem>
+                    <SelectItem value="South Korea" disabled>
+                      South Korea
+                    </SelectItem>
+                    <SelectItem value="Hong Kong" disabled>
+                      Hong Kong
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>

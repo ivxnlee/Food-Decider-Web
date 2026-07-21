@@ -15,11 +15,11 @@ A food discovery and decision-making app that helps you decide on your next meal
 
 ## Features
 
-- 🔍 **Food Discovery** — Browse and explore food options tailored to your city
+- 🔍 **Food Discovery** — Browse and explore food options tailored to your country
 - 🔒 **Food Lock-in** — Claim a food item with a countdown timer; multiple users can lock independently
 - 🥗 **Dietary Filters** — Filter by halal, vegan, and vegetarian preferences
 - ❤️ **Favourites** — Save your favourite foods for quick access
-- 👤 **User Profiles** — Personalised preferences including city and dietary settings
+- 👤 **User Profiles** — Personalised preferences including country and dietary settings
 - 🔐 **Auth** — Supabase-powered authentication with row-level security
 
 ---
@@ -81,7 +81,7 @@ The app uses Supabase (Postgres) with the following key tables:
 
 | Table              | Purpose                                                   |
 | ------------------ | --------------------------------------------------------- |
-| `account_settings` | User preferences (city, dietary, favourites)              |
+| `account_settings` | User preferences (country, dietary, favourites)           |
 | `foods`            | Food items available for discovery                        |
 | `food_locks`       | Active lock-in records with server-side expiry timestamps |
 
