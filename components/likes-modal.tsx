@@ -12,31 +12,35 @@ interface FoodSummary {
 interface LikesModalProps {
   open?: boolean;
   onClose: () => void;
-  favouriteFoods: FoodSummary[];
+  favouriteFoods: number[]; // prop for favourite food IDs
+  favouriteFoodsEntries: FoodSummary[];
   suggestions: FoodSummary[];
   onUnlike: (foodId: number) => Promise<void> | void;
   onLike: (foodId: number) => Promise<void> | void;
   onSuggestionSubmit: (suggestion: string) => Promise<void> | void;
   isMutating?: boolean;
   secondsLeft: number; // prop for cooldown seconds left
+  initStatus: string; // prop for initStatus
 }
 
 export function LikesModal({
   open = true,
   onClose,
   favouriteFoods,
+  favouriteFoodsEntries,
   suggestions,
   onUnlike,
   onLike,
   onSuggestionSubmit,
   isMutating = false,
   secondsLeft,
+  initStatus,
 }: LikesModalProps) {
   const [activeTab, setActiveTab] = useState<"likes" | "discover">("likes");
   const [isSuggesting, setIsSuggesting] = useState(false);
   const [suggestionText, setSuggestionText] = useState("");
 
-  const hasNoLikes = favouriteFoods.length === 0;
+  const hasNoLikes = favouriteFoods?.length < 3;
   const hasSuggestions = suggestions.length > 0;
 
   useEffect(() => {
@@ -86,13 +90,15 @@ export function LikesModal({
             </p>
           </div>
           <div className="absolute right-4 top-4 flex items-center gap-2">
-            <Button
-              onClick={() => setIsSuggesting(true)}
-              variant="green"
-              size="xlg"
-            >
-              Suggest
-            </Button>
+            {initStatus === "logged in" && (
+              <Button
+                onClick={() => setIsSuggesting(true)}
+                variant="green"
+                size="xlg"
+              >
+                Suggest
+              </Button>
+            )}
             <Button onClick={onClose} variant="close" size="xlg">
               Close
             </Button>
@@ -179,11 +185,11 @@ export function LikesModal({
                   <>
                     {hasNoLikes ? (
                       <div className="rounded-2xl border border-dashed border-white/10 bg-white/5 p-6 text-center text-sm text-slate-400">
-                        You have not liked any foods yet. Head to Discover tab
-                        to start building your list.
+                        You need to like at least 3 foods to see them here. Head
+                        to Discover tab to start building your list.
                       </div>
                     ) : (
-                      favouriteFoods.map((food) => (
+                      favouriteFoodsEntries.map((food) => (
                         <div
                           key={food.id}
                           className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/5 p-4"
@@ -212,7 +218,9 @@ export function LikesModal({
                             variant="brightdestructive"
                             size="lg"
                             onClick={() => onUnlike(food.id)}
-                            disabled={isMutating || favouriteFoods.length <= 3}
+                            disabled={
+                              isMutating || favouriteFoodsEntries.length <= 3
+                            }
                           >
                             Un-Like
                           </Button>

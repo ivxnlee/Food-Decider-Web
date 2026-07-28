@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 
 import { Button } from "@/components/ui/button";
-import { Modal } from "@/components/modal";
+import { FoodModal } from "./food-modal";
 
 // chance is kept for future weighting; all equal for now
 export interface FoodItem {
@@ -20,65 +20,6 @@ const dummyFoods: FoodItem[] = [
     desc: "Loading...",
     cuisine: ["Loading..."],
     image_url: "/images/loading.jpg",
-    chance: 0.1,
-  },
-];
-
-const FOODS: FoodItem[] = [
-  {
-    id: 8,
-    name: "Pizza",
-    desc: "Pizza is a beloved, globally popular dish consisting of a flattened disk of bread dough topped with savory ingredients. It typically features a rich, tomato-based sauce and melted cheese (like mozzarella) baked quickly in a hot oven, customized with various meats, vegetables, and herbs.",
-    cuisine: ["Italian"],
-    image_url: "/images/pizza.jpg",
-    chance: 0.1,
-  },
-  {
-    id: 5,
-    name: "Sushi",
-    desc: "Sushi is a traditional Japanese dish centered around vinegared medium-grain rice. It is paired with a variety of ingredients, such as raw or cooked seafood, vegetables, and egg, and is often wrapped in dried seaweed.",
-    cuisine: ["Japanese"],
-    image_url: "/images/sushi.jpg",
-    chance: 0.1,
-  },
-  {
-    id: 9,
-    name: "Hotpot",
-    desc: "Hot pot is an interactive, communal dining experience where diners sit around a simmering pot of flavored broth and cook their own raw ingredients at the table.",
-    cuisine: ["Chinese"],
-    image_url: "/images/hotpot.jpg",
-    chance: 0.1,
-  },
-  {
-    id: 4,
-    name: "Pasta",
-    desc: "Pasta dishes are typically categorized by their defining sauce and regional origins. They are often paired with specific shapes—such as long ribbons or hollow tubes—to best complement the sauce's texture.",
-    cuisine: ["Italian"],
-    image_url: "/images/pasta.jpg",
-    chance: 0.1,
-  },
-  {
-    id: 17,
-    name: "Burger",
-    desc: "A burger is a sandwich featuring a savory ground meat patty—most commonly beef—pan-fried or grilled, and nestled inside a sliced bun. It is typically layered with melted cheese, fresh vegetables, and condiments like lettuce, tomatoes, onions, bacon, pickles, mayonnaise, and mustard.",
-    cuisine: ["American"],
-    image_url: "/images/burger.jpg",
-    chance: 0.1,
-  },
-  {
-    id: 7,
-    name: "Ramen",
-    desc: "Ramen is a beloved Japanese noodle soup consisting of wheat noodles served in a savory, umami-rich broth, paired with various meats and vegetables.",
-    cuisine: ["Japanese"],
-    image_url: "/images/ramen.jpg",
-    chance: 0.1,
-  },
-  {
-    id: 15,
-    name: "Steak",
-    desc: "high-quality beef taken from the hindquarters of the animal, typically cut into thick slices that are cooked by grilling or frying.",
-    cuisine: ["American"],
-    image_url: "/images/steak.jpg",
     chance: 0.1,
   },
 ];
@@ -129,7 +70,7 @@ function FoodImage({ item, size }: FoodImageProps) {
 }
 
 interface FoodSpinnerProps {
-  loggedIn: string;
+  initStatus: string;
   lockIn: (
     foodID: number,
     onSuccess?: (() => void) | undefined,
@@ -142,7 +83,7 @@ interface FoodSpinnerProps {
 }
 
 export default function FoodSpinner({
-  loggedIn,
+  initStatus,
   lockIn,
   lockLoading,
   isTouch,
@@ -156,9 +97,7 @@ export default function FoodSpinner({
 
   useEffect(() => {
     let newItems = dummyItems;
-    if (loggedIn === "logged out") {
-      newItems = FOODS;
-    } else if (loggedIn === "logged in" && items && items.length > 0) {
+    if (items && items.length > 0) {
       newItems = items;
     }
 
@@ -167,7 +106,7 @@ export default function FoodSpinner({
         Array.from({ length: TOTAL_ITEMS }, () => randomFiller(newItems)),
       );
     }
-  }, [items, loggedIn]);
+  }, [items, initStatus]);
 
   const [translateX, setTranslateX] = useState(0);
   const [transition, setTransition] = useState("none");
@@ -180,9 +119,7 @@ export default function FoodSpinner({
     setResult(null);
 
     let tempItems = dummyItems;
-    if (loggedIn === "logged out") {
-      tempItems = FOODS;
-    } else if (loggedIn === "logged in" && items && items.length > 0) {
+    if (items && items.length > 0) {
       tempItems = items;
     }
 
@@ -255,34 +192,38 @@ export default function FoodSpinner({
       <div className="mt-6 flex justify-center">
         <Button
           onClick={spin}
-          disabled={spinning || loggedIn === "loading"}
+          disabled={
+            spinning || initStatus === "loading" || items === dummyFoods
+          }
           className="h-15 w-40 text-3xl"
         >
           SPIN
         </Button>
       </div>
 
-      <Modal
+      <FoodModal
         open={Boolean(result)}
         onClose={() => setResult(null)}
         icon={
-          <div className="text-3xl" aria-hidden="true">
+          <div className="text-2xl leading-none" aria-hidden="true">
             🍽️
           </div>
         }
         title={result?.name ?? "Your food choice"}
+        previewContent={
+          result ? (
+            <div className="flex items-center justify-center">
+              <FoodImage item={result} size={280} />
+            </div>
+          ) : null
+        }
         description={
           result ? (
-            <div className="space-y-4 text-left">
-              <div className="flex items-center justify-center">
-                <FoodImage item={result} size={180} />
-              </div>
-              <div>
-                <p>{result.desc}</p>
-                <p className="text-sm text-slate-400 mt-2">
-                  Cuisine: {result.cuisine.join(", ")}
-                </p>
-              </div>
+            <div className="space-y-2 text-left">
+              <p className=" line-clamp-5 overflow-y-auto">{result.desc}</p>
+              <p className="text-sm text-slate-400 mt-2">
+                Cuisine: {result.cuisine.join(", ")}
+              </p>
             </div>
           ) : (
             ""
@@ -292,11 +233,13 @@ export default function FoodSpinner({
           label: lockLoading ? "Processing..." : "Lock In",
           onClick: () => result && lockIn(result.id, () => setResult(null)),
           className: "w-full",
-          disabled: loggedIn !== "logged in" || lockLoading,
+          disabled:
+            initStatus === "loading" || lockLoading || items === dummyFoods,
           isTouch: isTouch,
           lockLoading: lockLoading,
+          initStatus: initStatus,
           tooltipText:
-            "Login to save your choice and get personalized recommendations!",
+            "Login to save your choice across devices and get dining recommendations!",
         }}
         secondaryAction={{
           label: "Close",

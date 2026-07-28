@@ -24,8 +24,8 @@ interface FoodData {
   desc: string;
   cuisine: string[];
   image_url: string;
-  is_locked: boolean;
-  expires_at: string | null;
+  is_locked?: boolean;
+  expires_at?: string | null;
 }
 
 export default function DashboardPage() {
@@ -50,7 +50,7 @@ export default function DashboardPage() {
   const [halal, setHalal] = useState<boolean>(false);
   const [vegan, setVegan] = useState<boolean>(false);
   const [vegetarian, setVegetarian] = useState<boolean>(false);
-  const [favouriteFoods, setFavouriteFoods] = useState<number[] | null>(null);
+  const [favouriteFoods, setFavouriteFoods] = useState<number[]>([]);
   const [lockedFoods, setLockedFoods] = useState<FoodData[] | null>(null);
   const [favouriteFoodEntries, setFavouriteFoodEntries] = useState<FoodData[]>(
     [],
@@ -69,8 +69,18 @@ export default function DashboardPage() {
   const STORAGE_KEY = "suggestion_cooldown_until";
 
   // Zustand store for anonymous users
-  const { country: anonCountry, setCountry: setAnonCountry } =
-    useAnonLockStore();
+  const {
+    country: anonCountry,
+    countryHasSet: anonCountryHasSet,
+    setCountry: setAnonCountry,
+    setCountryBoolean: setAnonCountryBoolean,
+    favouriteFoodIds: anonFavouriteFoodIds,
+    lockedFoods: anonLockedFoods,
+    lockFood: lockAnonFood,
+    unlockFood: unlockAnonFood,
+    likeFood: likeAnonFood,
+    unlikeFood: unlikeAnonFood,
+  } = useAnonLockStore();
 
   useEffect(() => {
     setMounted(true);
@@ -184,8 +194,13 @@ export default function DashboardPage() {
   }, []);
 
   function getCountryCookie(): string {
+    const codeToName: Record<string, string> = {
+      SG: "Singapore",
+      MY: "Malaysia",
+    };
     const match = document.cookie.match(/(?:^|;\s*)user-country=([^;]*)/);
-    return match ? decodeURIComponent(match[1]) : "Others";
+    const code = match ? decodeURIComponent(match[1] ?? "") : "";
+    return codeToName[code] ?? "Others";
   }
 
   const fetchProfile = async () => {
@@ -195,7 +210,24 @@ export default function DashboardPage() {
 
     if (!session?.user) {
       setInitStatus("logged out");
-      console.log("User Country (from cookie):", getCountryCookie());
+      let userCountry = anonCountry;
+
+      if (anonCountryHasSet) {
+        userCountry = getCountryCookie();
+        setAnonCountry(userCountry);
+        setAnonCountryBoolean(true); // Mark that the country has been set for anonymous users
+      }
+
+      setFavouriteFoods(anonFavouriteFoodIds);
+
+      await getAvailableFavouriteFoods(anonFavouriteFoodIds);
+      await fetchSuggestedFoods(
+        anonFavouriteFoodIds,
+        userCountry,
+        false,
+        false,
+        false,
+      );
       return;
     } else {
       setInitStatus("logged in");
@@ -235,7 +267,7 @@ export default function DashboardPage() {
       setSuggestAgainDays(profile?.suggest_again_days ?? 4);
       setFavouriteFoods(favouriteFoodIds);
 
-      if (favouriteFoodIds.length > 0) {
+      if (favouriteFoodIds.length > 3) {
         await getAvailableFavouriteFoods(favouriteFoodIds);
         await fetchSuggestedFoods(
           favouriteFoodIds,
@@ -245,11 +277,9 @@ export default function DashboardPage() {
           profileVegetarian,
         );
       } else {
-        setFavouriteFoodEntries([]);
-        setLockedFoods([]);
-        setMappedFoods([]);
+        await getAvailableFavouriteFoods([]);
         await fetchSuggestedFoods(
-          [],
+          favouriteFoodIds,
           profileCountry,
           profileHalal,
           profileVegan,
@@ -297,149 +327,265 @@ export default function DashboardPage() {
     setSuggestedFoods(filteredFoods);
   };
 
-  const getAvailableFavouriteFoods = async (favourite_foods: number[]) => {
-    if (favourite_foods.length === 0) {
-      setFavouriteFoodEntries([]);
-      setLockedFoods([]);
-      setMappedFoods([]);
-      return;
-    }
+  const getAvailableFavouriteFoods = async (
+    favourite_foods: number[],
+    lockedFoodsState: { foodId: number }[] = anonLockedFoods,
+  ) => {
+    if (!userID || initStatus === "logged out") {
+      const { data, error } = await supabase
+        .from("foods")
+        .select("id, name, desc, cuisine, image_url")
+        .in("id", favourite_foods);
 
-    const { data, error } = await supabase.rpc(
-      "get_available_favourite_foods",
-      {
-        p_food_ids: favourite_foods,
-      },
-    );
+      if (error) {
+        console.error("Error loading favourite foods:", error);
+        return;
+      }
 
-    if (error) {
-      console.error("Error loading favourite foods:", error);
-      return;
-    }
+      const foods = (data as FoodData[] | null) ?? [];
 
-    const foods = data as FoodData[] | null;
+      if (foods.length > 0) {
+        setFavouriteFoodEntries(foods);
 
-    if (foods && foods.length > 0) {
-      setFavouriteFoodEntries(foods);
-      const availableFoods = foods.filter((f) => !f.is_locked);
-      const lockedFoods = foods.filter((f) => f.is_locked);
-      setLockedFoods(lockedFoods);
+        const lockedFoodIds = new Set(
+          lockedFoodsState.map((food) => food.foodId),
+        );
+        const availableFoods = foods.filter(
+          (food) => !lockedFoodIds.has(food.id),
+        );
+        const lockedFoods = foods.filter((food) => lockedFoodIds.has(food.id));
+        setLockedFoods(lockedFoods);
 
-      if (availableFoods && availableFoods.length > 0) {
-        const mappedFoods = availableFoods.map((food: FoodData) => ({
-          id: food.id,
-          name: food.name,
-          desc: food.desc,
-          cuisine: food.cuisine,
-          image_url: food.image_url,
-          chance: 0.1,
-        }));
-        setMappedFoods(mappedFoods);
+        if (availableFoods.length > 0) {
+          const mappedFoods = availableFoods.map((food: FoodData) => ({
+            id: food.id,
+            name: food.name,
+            desc: food.desc,
+            cuisine: food.cuisine,
+            image_url: food.image_url,
+            chance: 0.1,
+          }));
+          setMappedFoods(mappedFoods);
+        } else {
+          setMappedFoods([]);
+        }
       } else {
+        setFavouriteFoodEntries([]);
+        setLockedFoods([]);
         setMappedFoods([]);
       }
-    } else {
-      setFavouriteFoodEntries([]);
-      setLockedFoods([]);
-      setMappedFoods([]);
+    } else if (initStatus === "logged in") {
+      const { data, error } = await supabase.rpc(
+        "get_available_favourite_foods",
+        {
+          p_food_ids: favourite_foods,
+        },
+      );
+
+      if (error) {
+        console.error("Error loading favourite foods:", error);
+        return;
+      }
+
+      const foods = data as FoodData[] | null;
+
+      if (foods && foods.length > 0) {
+        setFavouriteFoodEntries(foods);
+        const availableFoods = foods.filter((f) => !f.is_locked);
+        const lockedFoods = foods.filter((f) => f.is_locked);
+        setLockedFoods(lockedFoods);
+
+        if (availableFoods && availableFoods.length > 0) {
+          const mappedFoods = availableFoods.map((food: FoodData) => ({
+            id: food.id,
+            name: food.name,
+            desc: food.desc,
+            cuisine: food.cuisine,
+            image_url: food.image_url,
+            chance: 0.1,
+          }));
+          setMappedFoods(mappedFoods);
+        } else {
+          setMappedFoods([]);
+        }
+      } else {
+        setFavouriteFoodEntries([]);
+        setLockedFoods([]);
+        setMappedFoods([]);
+      }
     }
   };
 
   const lockIn = async (foodID: number, onSuccess?: () => void) => {
-    setLockLoading(true);
-    const { error } = await supabase.rpc("lock_food", {
-      p_food_id: foodID,
-      p_days: suggestAgainDays,
-    });
+    if (!userID || initStatus === "logged out") {
+      lockAnonFood(foodID);
+      const updatedAnonLockedFoods = [
+        ...anonLockedFoods,
+        { foodId: foodID, lockedAt: Date.now() },
+      ];
 
-    if (error) {
-      console.error("Error updating profile:", error);
-      return;
+      if (favouriteFoods.length > 3) {
+        getAvailableFavouriteFoods(favouriteFoods, updatedAnonLockedFoods);
+      } else {
+        getAvailableFavouriteFoods([], updatedAnonLockedFoods);
+      }
+    } else if (initStatus === "logged in") {
+      setLockLoading(true);
+      const { error } = await supabase.rpc("lock_food", {
+        p_food_id: foodID,
+        p_days: suggestAgainDays,
+      });
+
+      if (error) {
+        console.error("Error updating profile:", error);
+        setLockLoading(false);
+        return;
+      }
+
+      setLockLoading(false);
+
+      if (favouriteFoods.length > 3) {
+        getAvailableFavouriteFoods(favouriteFoods);
+      } else {
+        getAvailableFavouriteFoods([]);
+      }
     }
-    favouriteFoods && getAvailableFavouriteFoods(favouriteFoods);
+
     toast.success("Food Locked Successfully");
-    setLockLoading(false);
     onSuccess?.();
   };
 
   const removeFromLock = async (foodID: number) => {
-    const { error } = await supabase
-      .from("food_locks")
-      .delete()
-      .eq("food_id", foodID);
+    if (!userID || initStatus === "logged out") {
+      unlockAnonFood(foodID);
+      const updatedAnonLockedFoods = anonLockedFoods.filter(
+        (food) => food.foodId !== foodID,
+      );
 
-    if (error) {
-      console.error("Error removing lock:", error);
-      return;
+      if (favouriteFoods.length > 3) {
+        getAvailableFavouriteFoods(favouriteFoods, updatedAnonLockedFoods);
+      } else {
+        getAvailableFavouriteFoods([], updatedAnonLockedFoods);
+      }
+    } else if (initStatus === "logged in") {
+      const { error } = await supabase
+        .from("food_locks")
+        .delete()
+        .eq("food_id", foodID);
+
+      if (error) {
+        console.error("Error removing lock:", error);
+        return;
+      }
+
+      if (favouriteFoods.length > 3) {
+        getAvailableFavouriteFoods(favouriteFoods);
+      } else {
+        getAvailableFavouriteFoods([]);
+      }
     }
+
     toast.success("Locked Food Removed");
-    favouriteFoods && getAvailableFavouriteFoods(favouriteFoods);
   };
 
   const handleLikeFood = async (foodID: number) => {
-    if (!userID) return;
-
-    setLikesMutating(true);
-
-    const updatedFavouriteFoods = favouriteFoods
-      ? Array.from(new Set([...favouriteFoods, foodID]))
-      : [foodID];
-
-    const { error } = await supabase
-      .from("account_settings")
-      .update({ favourite_foods: updatedFavouriteFoods })
-      .eq("id", userID)
-      .select();
-
-    if (error) {
-      console.error("Error liking food:", error);
-      setLikesMutating(false);
+    if (!userID || initStatus === "logged out") {
+      likeAnonFood(foodID);
+      const updatedFavouriteFoods =
+        useAnonLockStore.getState().favouriteFoodIds;
+      setFavouriteFoods(updatedFavouriteFoods);
+      await getAvailableFavouriteFoods(updatedFavouriteFoods);
+      await fetchSuggestedFoods(
+        updatedFavouriteFoods,
+        anonCountry,
+        false,
+        false,
+        false,
+      );
+      toast.success("Food added to your likes");
       return;
-    }
+    } else if (initStatus === "logged in") {
+      setLikesMutating(true);
 
-    setFavouriteFoods(updatedFavouriteFoods);
-    await getAvailableFavouriteFoods(updatedFavouriteFoods);
-    await fetchSuggestedFoods(
-      updatedFavouriteFoods,
-      country,
-      halal,
-      vegan,
-      vegetarian,
-    );
-    toast.success("Food added to your likes");
-    setLikesMutating(false);
+      const updatedFavouriteFoods = favouriteFoods
+        ? Array.from(new Set([...favouriteFoods, foodID]))
+        : [foodID];
+
+      const { error } = await supabase
+        .from("account_settings")
+        .update({ favourite_foods: updatedFavouriteFoods })
+        .eq("id", userID)
+        .select();
+
+      if (error) {
+        console.error("Error liking food:", error);
+        setLikesMutating(false);
+        return;
+      }
+
+      setFavouriteFoods(updatedFavouriteFoods);
+      await getAvailableFavouriteFoods(updatedFavouriteFoods);
+      await fetchSuggestedFoods(
+        updatedFavouriteFoods,
+        country,
+        halal,
+        vegan,
+        vegetarian,
+      );
+      toast.success("Food added to your likes");
+      setLikesMutating(false);
+    }
   };
 
   const handleUnlikeFood = async (foodID: number) => {
-    if (!userID || !favouriteFoods) return;
+    if (!favouriteFoods && initStatus === "logged in") return;
 
-    setLikesMutating(true);
-
-    const updatedFavouriteFoods = favouriteFoods.filter((id) => id !== foodID);
-
-    const { error } = await supabase
-      .from("account_settings")
-      .update({ favourite_foods: updatedFavouriteFoods })
-      .eq("id", userID)
-      .select();
-
-    if (error) {
-      console.error("Error unliking food:", error);
-      setLikesMutating(false);
+    if (!userID || initStatus === "logged out") {
+      unlikeAnonFood(foodID);
+      const updatedFavouriteFoods =
+        useAnonLockStore.getState().favouriteFoodIds;
+      setFavouriteFoods(updatedFavouriteFoods);
+      await getAvailableFavouriteFoods(updatedFavouriteFoods);
+      await fetchSuggestedFoods(
+        updatedFavouriteFoods,
+        anonCountry,
+        false,
+        false,
+        false,
+      );
+      toast.success("Food removed from your likes");
       return;
-    }
+    } else if (initStatus === "logged in") {
+      setLikesMutating(true);
 
-    setFavouriteFoods(updatedFavouriteFoods);
-    await getAvailableFavouriteFoods(updatedFavouriteFoods);
-    await fetchSuggestedFoods(
-      updatedFavouriteFoods,
-      country,
-      halal,
-      vegan,
-      vegetarian,
-    );
-    toast.success("Food removed from your likes");
-    setLikesMutating(false);
+      const updatedFavouriteFoods = favouriteFoods.filter(
+        (id) => id !== foodID,
+      );
+
+      const { error } = await supabase
+        .from("account_settings")
+        .update({ favourite_foods: updatedFavouriteFoods })
+        .eq("id", userID)
+        .select();
+
+      if (error) {
+        console.error("Error unliking food:", error);
+        setLikesMutating(false);
+        return;
+      }
+
+      setFavouriteFoods(updatedFavouriteFoods);
+      await getAvailableFavouriteFoods(updatedFavouriteFoods);
+      await fetchSuggestedFoods(
+        updatedFavouriteFoods,
+        country,
+        halal,
+        vegan,
+        vegetarian,
+      );
+      toast.success("Food removed from your likes");
+      setLikesMutating(false);
+    }
   };
 
   useEffect(() => {
@@ -451,7 +597,7 @@ export default function DashboardPage() {
 
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, []);
+  }, [initStatus]);
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -589,6 +735,14 @@ export default function DashboardPage() {
                 />
               </Button>
               <Button
+                type="button"
+                variant="outline"
+                className="w-18 h-12 text-base sm:w-30 sm:h-15 sm:text-3xl"
+                onClick={() => setLikesModalOpen(true)}
+              >
+                Likes
+              </Button>
+              <Button
                 asChild
                 variant="green"
                 className="mr-1 sm:mr-2 w-23 h-12 text-base sm:w-35 sm:h-15 sm:text-3xl"
@@ -655,7 +809,7 @@ export default function DashboardPage() {
 
         <section className="grid gap-4">
           {initStatus === "logged out" && (
-            <div className="p-6 rounded-3xl border border-amber-600 bg-amber-800 shadow-inner shadow-slate-950/40">
+            <div className="p-3 sm:p-6 rounded-3xl border border-amber-600 bg-amber-800 shadow-inner shadow-slate-950/40">
               <h2 className="text-xl font-medium dark:text-slate-50">
                 Want more features?
               </h2>
@@ -667,7 +821,7 @@ export default function DashboardPage() {
           )}
 
           <FoodSpinner
-            loggedIn={initStatus}
+            initStatus={initStatus}
             items={mappedFoods}
             lockIn={lockIn}
             lockLoading={lockLoading}
@@ -747,13 +901,15 @@ export default function DashboardPage() {
       <LikesModal
         open={likesModalOpen}
         onClose={() => setLikesModalOpen(false)}
-        favouriteFoods={favouriteFoodEntries}
+        favouriteFoods={favouriteFoods}
+        favouriteFoodsEntries={favouriteFoodEntries}
         suggestions={suggestedFoods}
         onUnlike={handleUnlikeFood}
         onLike={handleLikeFood}
         onSuggestionSubmit={handleSuggestionSubmit}
         isMutating={likesMutating}
         secondsLeft={secondsLeft}
+        initStatus={initStatus}
       />
       <SettingsModal
         open={settingsModalOpen}

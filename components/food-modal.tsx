@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -6,7 +6,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-interface ModalAction {
+interface FoodModalAction {
   label: string;
   onClick: () => void;
   isTouch?: boolean;
@@ -17,7 +17,7 @@ interface ModalAction {
   lockLoading?: boolean;
 }
 
-interface ModalProps {
+interface FoodModalProps {
   /** Icon element to display at the top (e.g. a HugeiconsIcon) */
   icon: ReactNode;
   /** Background color class for the icon circle (e.g. "bg-green-500/20") */
@@ -26,26 +26,31 @@ interface ModalProps {
   title: string;
   /** Description content — can be a string or JSX */
   description: ReactNode;
+  /** Optional content shown above the collapsible details */
+  previewContent?: ReactNode;
   /** Primary action button config */
-  action: ModalAction;
+  action: FoodModalAction;
   /** Secondary/cancel action button config (optional) */
-  secondaryAction?: ModalAction;
+  secondaryAction?: FoodModalAction;
   /** Controlled visibility */
   open?: boolean;
   /** Called when backdrop is clicked */
   onClose?: () => void;
 }
 
-export function Modal({
+export function FoodModal({
   icon,
   iconBgColor = "bg-white/10",
   title,
   description,
+  previewContent,
   action,
   secondaryAction,
   open = true,
   onClose,
-}: ModalProps) {
+}: FoodModalProps) {
+  const [isDescriptionOpen, setIsDescriptionOpen] = useState(false);
+
   if (!open) return null;
 
   return (
@@ -61,7 +66,7 @@ export function Modal({
         <div className="flex flex-col items-center text-center">
           {/* Icon */}
           <div
-            className={`w-16 h-16 rounded-full ${iconBgColor} flex items-center justify-center mb-4`}
+            className={`w-12 h-12 rounded-full ${iconBgColor} flex items-center justify-center mb-3`}
           >
             {icon}
           </div>
@@ -71,9 +76,18 @@ export function Modal({
             {title}
           </h2>
 
+          {/* Preview content */}
+          {previewContent && (
+            <div className="mb-4 flex w-full justify-center p-2">
+              <div className="w-full max-w-sm">{previewContent}</div>
+            </div>
+          )}
+
           {/* Description */}
-          <div className="text-slate-600 dark:text-slate-300 mb-6">
-            {description}
+          <div className="w-full mb-6">
+            <div className="mt-2 rounded-lg border border-slate-300/70 bg-white/70 px-4 py-3 text-sm text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
+              {description}
+            </div>
           </div>
           <div className="w-full flex flex-col gap-2">
             {/* Primary action */}
@@ -88,6 +102,7 @@ export function Modal({
                 <span className="inline-block w-full">
                   <Button
                     onClick={action.onClick}
+                    size="xlg"
                     className={action.className ?? "w-full"}
                     disabled={action.disabled}
                   >
@@ -106,6 +121,7 @@ export function Modal({
             {secondaryAction && (
               <Button
                 variant="brightgreen"
+                size="lg"
                 onClick={secondaryAction.onClick}
                 className={
                   secondaryAction.className ?? "w-full mt-2 text-white"

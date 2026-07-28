@@ -5,10 +5,6 @@ export async function proxy(request: NextRequest) {
   const response = await updateSession(request);
 
   const country = request.headers.get("x-vercel-ip-country") ?? "SG";
-  console.log(
-    "🚀 ~ proxy ~ country:",
-    request.headers.get("x-vercel-ip-country"),
-  ); // Remove in the future
   response.cookies.set("user-country", country, {
     httpOnly: false,
     sameSite: "lax",
